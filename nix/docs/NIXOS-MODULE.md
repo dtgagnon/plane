@@ -20,7 +20,7 @@ The Plane NixOS module provides a declarative way to deploy and configure Plane 
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    plane.url = "github:makeplane/plane/add/nix";  # or local path
+    plane.url = "github:makeplane/plane";  # or local path
   };
 
   outputs = { self, nixpkgs, plane }: {

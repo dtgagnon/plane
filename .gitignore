@@ -70,6 +70,7 @@ yarn-error.log
 package-lock.json
 .vscode
 CLAUDE.md
+.claude
 
 # Sentry
 .sentryclirc
@@ -100,3 +101,4 @@ dev-editor
 # Nix
 result
 .envrc
+.direnv

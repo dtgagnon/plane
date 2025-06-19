@@ -1,8 +1,11 @@
-{ config, lib, pkgs, ... }:
-
+{ lib
+, pkgs
+, config
+, ...
+}:
 let
-  cfg = config.services.plane;
   inherit (lib) mkEnableOption mkOption mkIf types literalExpression;
+  cfg = config.services.plane;
 in
 {
   options.services.plane = {
