@@ -69,6 +69,7 @@ yarn-error.log
 *.sln
 package-lock.json
 .vscode
+CLAUDE.md
 
 # Sentry
 .sentryclirc
@@ -95,3 +96,7 @@ dev-editor
 # Redis
 *.rdb
 *.rdb.gz
+
+# Nix
+result
+.envrc
