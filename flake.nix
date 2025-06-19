@@ -17,5 +17,28 @@
           default = plane;
           plane = plane;
         };
-      });
+        
+        # Development shell with Plane package available
+        devShells.default = pkgs.mkShell {
+          buildInputs = [ plane ];
+          shellHook = ''
+            echo "Plane development environment"
+            echo "Available commands:"
+            echo "  plane help    - Show Plane CLI help"
+            echo "  plane setup   - Setup Plane configuration"
+            echo ""
+          '';
+        };
+      }) // {
+        # NixOS module
+        nixosModules = {
+          default = import ./nix/nixos-module.nix;
+          plane = import ./nix/nixos-module.nix;
+        };
+        
+        # Example configurations
+        examples = {
+          basic = import ./nix/example-configuration.nix;
+        };
+      };
 }
