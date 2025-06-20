@@ -274,33 +274,20 @@ in
     ];
 
     # User and group management
-    users.users = mkMerge [
-      (mkIf (cfg.user == "plane") {
-        plane = {
-          isSystemUser = true;
-          group = cfg.group;
-          home = cfg.stateDir;
-          createHome = true;
-          description = "Plane service user";
-        };
-      })
-      (mkIf cfg.storage.local {
-        minio = {
-          isSystemUser = true;
-          group = "minio";
-          description = "MinIO service user";
-        };
-      })
-    ];
+    # Note: MinIO user/group creation is handled automatically by services.minio module
+    users.users = mkIf (cfg.user == "plane") {
+      plane = {
+        isSystemUser = true;
+        group = cfg.group;
+        home = cfg.stateDir;
+        createHome = true;
+        description = "Plane service user";
+      };
+    };
 
-    users.groups = mkMerge [
-      (mkIf (cfg.group == "plane") {
-        plane = {};
-      })
-      (mkIf cfg.storage.local {
-        minio = {};
-      })
-    ];
+    users.groups = mkIf (cfg.group == "plane") {
+      plane = {};
+    };
 
     # Directory structure
     systemd.tmpfiles.rules = [
@@ -310,10 +297,12 @@ in
       "d /var/log/plane 0750 ${cfg.user} ${cfg.group} -"
       "d /etc/plane 0755 root root -"
     ] ++ lib.optionals cfg.storage.local [
+      # MinIO data directory within plane stateDir - user creation handled by services.minio
       "d ${cfg.stateDir}/minio 0755 minio minio -"
     ];
 
     # Conditional service dependencies
+    # These leverage existing NixOS modules for battle-tested configurations
     services.postgresql = mkIf cfg.database.local {
       enable = true;
       ensureDatabases = [ cfg.database.name ];
@@ -339,10 +328,11 @@ in
       port = cfg.rabbitmq.port;
     };
 
+    # MinIO object storage - leverages existing NixOS module for user creation and service management
     services.minio = mkIf cfg.storage.local {
       enable = true;
       listenAddress = "${cfg.storage.host}:${toString cfg.storage.port}";
-      dataDir = [ "${cfg.stateDir}/minio" ];
+      dataDir = [ "${cfg.stateDir}/minio" ];  # Stores data within plane stateDir for organization
       rootCredentialsFile = cfg.storage.credentialsFile;
     };
 
