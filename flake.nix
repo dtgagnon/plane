@@ -12,16 +12,16 @@
       let
         pkgs = import nixpkgs { inherit system; };
         plane = import ./nix/package.nix { inherit pkgs system; };
-      in {
+      in
+      {
         packages = {
           default = plane;
           plane = plane;
         };
-      }) // {
-        # NixOS module
         nixosModules = {
           default = import ./nix/nixos-module.nix;
           plane = import ./nix/nixos-module.nix;
         };
-      };
+      }
+    );
 }
