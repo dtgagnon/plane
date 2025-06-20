@@ -4,7 +4,7 @@
 , ...
 }:
 let
-  inherit (lib) mkEnableOption mkOption mkIf types literalExpression;
+  inherit (lib) mkEnableOption mkOption mkIf mkMerge types literalExpression;
   cfg = config.services.plane;
 in
 {
@@ -50,7 +50,7 @@ in
 
     web = {
       enable = mkEnableOption "Plane web interface" // { default = true; };
-      
+
       port = mkOption {
         type = types.port;
         default = 3101;
@@ -60,7 +60,7 @@ in
 
     admin = {
       enable = mkEnableOption "Plane admin interface" // { default = true; };
-      
+
       port = mkOption {
         type = types.port;
         default = 3102;
@@ -70,7 +70,7 @@ in
 
     api = {
       enable = mkEnableOption "Plane API backend" // { default = true; };
-      
+
       workers = mkOption {
         type = types.int;
         default = 1;
@@ -86,7 +86,7 @@ in
 
     space = {
       enable = mkEnableOption "Plane public space interface" // { default = true; };
-      
+
       port = mkOption {
         type = types.port;
         default = 3104;
@@ -96,7 +96,7 @@ in
 
     live = {
       enable = mkEnableOption "Plane live collaboration service" // { default = false; };
-      
+
       port = mkOption {
         type = types.port;
         default = 3105;
@@ -274,32 +274,33 @@ in
     ];
 
     # User and group management
-    users.users = mkIf (cfg.user == "plane") {
-      plane = {
-        isSystemUser = true;
-        group = cfg.group;
-        home = cfg.stateDir;
-        createHome = true;
-        description = "Plane service user";
-      };
-    };
+    users.users = mkMerge [
+      (mkIf (cfg.user == "plane") {
+        plane = {
+          isSystemUser = true;
+          group = cfg.group;
+          home = cfg.stateDir;
+          createHome = true;
+          description = "Plane service user";
+        };
+      })
+      (mkIf cfg.storage.local {
+        minio = {
+          isSystemUser = true;
+          group = "minio";
+          description = "MinIO service user";
+        };
+      })
+    ];
 
-    users.groups = mkIf (cfg.group == "plane") {
-      plane = {};
-    };
-
-    # MinIO user and group when using local storage
-    users.users = mkIf cfg.storage.local {
-      minio = {
-        isSystemUser = true;
-        group = "minio";
-        description = "MinIO service user";
-      };
-    };
-
-    users.groups = mkIf cfg.storage.local {
-      minio = {};
-    };
+    users.groups = mkMerge [
+      (mkIf (cfg.group == "plane") {
+        plane = {};
+      })
+      (mkIf cfg.storage.local {
+        minio = {};
+      })
+    ];
 
     # Directory structure
     systemd.tmpfiles.rules = [
@@ -404,14 +405,14 @@ in
       plane-migrate = mkIf cfg.api.enable {
         description = "Plane database migration";
         wantedBy = [ "multi-user.target" ];
-        after = [ "network.target" ] 
+        after = [ "network.target" ]
           ++ lib.optional cfg.database.local "postgresql.service"
           ++ lib.optional cfg.cache.local "redis-plane.service"
           ++ lib.optional cfg.rabbitmq.local "rabbitmq.service";
         requires = lib.optional cfg.database.local "postgresql.service"
           ++ lib.optional cfg.cache.local "redis-plane.service"
           ++ lib.optional cfg.rabbitmq.local "rabbitmq.service";
-        
+
         serviceConfig = {
           Type = "oneshot";
           User = cfg.user;
@@ -421,14 +422,14 @@ in
           ExecStart = "${cfg.package}/bin/plane-migrate";
           RemainAfterExit = true;
           Path = [ pkgs.bash ];
-          
+
           # Security hardening
           PrivateTmp = true;
           ProtectSystem = "strict";
           ProtectHome = true;
           ReadWritePaths = [ cfg.stateDir "/var/log/plane" ];
           NoNewPrivileges = true;
-          
+
           # Load secrets
           LoadCredential = [
             "secret-key:${cfg.secretKeyFile}"
@@ -440,7 +441,7 @@ in
             "storage-credentials:${cfg.storage.credentialsFile}"
           ];
         };
-        
+
         # Set environment variables from credentials
         environment = {
           SECRET_KEY_FILE = "/run/credentials/plane-migrate/secret-key";
@@ -465,7 +466,7 @@ in
           ++ lib.optional cfg.database.local "postgresql.service"
           ++ lib.optional cfg.cache.local "redis-plane.service"
           ++ lib.optional cfg.rabbitmq.local "rabbitmq.service";
-        
+
         serviceConfig = {
           Type = "exec";
           User = cfg.user;
@@ -475,14 +476,14 @@ in
           ExecStart = "${cfg.package}/bin/plane-api";
           Restart = "always";
           RestartSec = "5";
-          
+
           # Security hardening
           PrivateTmp = true;
           ProtectSystem = "strict";
           ProtectHome = true;
           ReadWritePaths = [ cfg.stateDir "/var/log/plane" ];
           NoNewPrivileges = true;
-          
+
           # Load secrets
           LoadCredential = [
             "secret-key:${cfg.secretKeyFile}"
@@ -494,7 +495,7 @@ in
             "storage-credentials:${cfg.storage.credentialsFile}"
           ];
         };
-        
+
         environment = {
           PORT = toString cfg.api.port;
           SECRET_KEY_FILE = "/run/credentials/plane-api/secret-key";
@@ -519,7 +520,7 @@ in
           ++ lib.optional cfg.database.local "postgresql.service"
           ++ lib.optional cfg.cache.local "redis-plane.service"
           ++ lib.optional cfg.rabbitmq.local "rabbitmq.service";
-        
+
         serviceConfig = {
           Type = "exec";
           User = cfg.user;
@@ -529,14 +530,14 @@ in
           ExecStart = "${cfg.package}/bin/plane-worker";
           Restart = "always";
           RestartSec = "5";
-          
+
           # Security hardening
           PrivateTmp = true;
           ProtectSystem = "strict";
           ProtectHome = true;
           ReadWritePaths = [ cfg.stateDir "/var/log/plane" ];
           NoNewPrivileges = true;
-          
+
           # Load secrets
           LoadCredential = [
             "secret-key:${cfg.secretKeyFile}"
@@ -548,7 +549,7 @@ in
             "storage-credentials:${cfg.storage.credentialsFile}"
           ];
         };
-        
+
         environment = {
           SECRET_KEY_FILE = "/run/credentials/plane-worker/secret-key";
         } // lib.optionalAttrs (cfg.database.passwordFile != null) {
@@ -572,7 +573,7 @@ in
           ++ lib.optional cfg.database.local "postgresql.service"
           ++ lib.optional cfg.cache.local "redis-plane.service"
           ++ lib.optional cfg.rabbitmq.local "rabbitmq.service";
-        
+
         serviceConfig = {
           Type = "exec";
           User = cfg.user;
@@ -582,14 +583,14 @@ in
           ExecStart = "${cfg.package}/bin/plane-beat";
           Restart = "always";
           RestartSec = "5";
-          
+
           # Security hardening
           PrivateTmp = true;
           ProtectSystem = "strict";
           ProtectHome = true;
           ReadWritePaths = [ cfg.stateDir "/var/log/plane" ];
           NoNewPrivileges = true;
-          
+
           # Load secrets
           LoadCredential = [
             "secret-key:${cfg.secretKeyFile}"
@@ -601,7 +602,7 @@ in
             "storage-credentials:${cfg.storage.credentialsFile}"
           ];
         };
-        
+
         environment = {
           SECRET_KEY_FILE = "/run/credentials/plane-beat/secret-key";
         } // lib.optionalAttrs (cfg.database.passwordFile != null) {
@@ -620,7 +621,7 @@ in
         wantedBy = [ "multi-user.target" ];
         after = [ "network.target" ] ++ lib.optional cfg.api.enable "plane-api.service";
         wants = lib.optional cfg.api.enable "plane-api.service";
-        
+
         serviceConfig = {
           Type = "exec";
           User = cfg.user;
@@ -629,7 +630,7 @@ in
           ExecStart = "${cfg.package}/bin/plane-web";
           Restart = "always";
           RestartSec = "5";
-          
+
           # Security hardening
           PrivateTmp = true;
           ProtectSystem = "strict";
@@ -637,7 +638,7 @@ in
           ReadWritePaths = [ "/var/log/plane" ];
           NoNewPrivileges = true;
         };
-        
+
         environment = {
           PORT = toString cfg.web.port;
           NEXT_PUBLIC_API_BASE_URL = "https://${cfg.domain}/api";
@@ -653,7 +654,7 @@ in
         wantedBy = [ "multi-user.target" ];
         after = [ "network.target" ] ++ lib.optional cfg.api.enable "plane-api.service";
         wants = lib.optional cfg.api.enable "plane-api.service";
-        
+
         serviceConfig = {
           Type = "exec";
           User = cfg.user;
@@ -662,7 +663,7 @@ in
           ExecStart = "${cfg.package}/bin/plane-admin";
           Restart = "always";
           RestartSec = "5";
-          
+
           # Security hardening
           PrivateTmp = true;
           ProtectSystem = "strict";
@@ -670,7 +671,7 @@ in
           ReadWritePaths = [ "/var/log/plane" ];
           NoNewPrivileges = true;
         };
-        
+
         environment = {
           PORT = toString cfg.admin.port;
           NEXT_PUBLIC_API_BASE_URL = "https://${cfg.domain}/api";
@@ -686,7 +687,7 @@ in
         wantedBy = [ "multi-user.target" ];
         after = [ "network.target" ] ++ lib.optional cfg.api.enable "plane-api.service";
         wants = lib.optional cfg.api.enable "plane-api.service";
-        
+
         serviceConfig = {
           Type = "exec";
           User = cfg.user;
@@ -695,7 +696,7 @@ in
           ExecStart = "${cfg.package}/bin/plane-space";
           Restart = "always";
           RestartSec = "5";
-          
+
           # Security hardening
           PrivateTmp = true;
           ProtectSystem = "strict";
@@ -703,7 +704,7 @@ in
           ReadWritePaths = [ "/var/log/plane" ];
           NoNewPrivileges = true;
         };
-        
+
         environment = {
           PORT = toString cfg.space.port;
           NEXT_PUBLIC_API_BASE_URL = "https://${cfg.domain}/api";
@@ -719,7 +720,7 @@ in
         wantedBy = [ "multi-user.target" ];
         after = [ "network.target" ] ++ lib.optional cfg.api.enable "plane-api.service";
         wants = lib.optional cfg.api.enable "plane-api.service";
-        
+
         serviceConfig = {
           Type = "exec";
           User = cfg.user;
@@ -728,7 +729,7 @@ in
           ExecStart = "${cfg.package}/bin/plane-live";
           Restart = "always";
           RestartSec = "5";
-          
+
           # Security hardening
           PrivateTmp = true;
           ProtectSystem = "strict";
@@ -736,7 +737,7 @@ in
           ReadWritePaths = [ "/var/log/plane" ];
           NoNewPrivileges = true;
         };
-        
+
         environment = {
           PORT = toString cfg.live.port;
           NEXT_PUBLIC_API_BASE_URL = "https://${cfg.domain}/api";
@@ -750,11 +751,11 @@ in
     # Nginx reverse proxy configuration
     services.nginx = mkIf cfg.nginx.enable {
       enable = true;
-      
+
       virtualHosts.${cfg.domain} = {
         enableACME = cfg.acme.enable;
         forceSSL = cfg.acme.enable;
-        
+
         locations = {
           # API backend
           "/api/" = mkIf cfg.api.enable {
@@ -768,7 +769,7 @@ in
               proxy_buffering off;
             '';
           };
-          
+
           # Admin interface (god-mode)
           "/god-mode/" = mkIf cfg.admin.enable {
             proxyPass = "http://127.0.0.1:${toString cfg.admin.port}/";
@@ -780,7 +781,7 @@ in
               proxy_set_header X-Forwarded-Proto $scheme;
             '';
           };
-          
+
           # Public spaces
           "/spaces/" = mkIf cfg.space.enable {
             proxyPass = "http://127.0.0.1:${toString cfg.space.port}/";
@@ -792,7 +793,7 @@ in
               proxy_set_header X-Forwarded-Proto $scheme;
             '';
           };
-          
+
           # Live collaboration service
           "/collaboration/" = mkIf cfg.live.enable {
             proxyPass = "http://127.0.0.1:${toString cfg.live.port}/";
@@ -806,7 +807,7 @@ in
               proxy_set_header Connection "upgrade";
             '';
           };
-          
+
           # Static files served by backend
           "/media/" = mkIf cfg.api.enable {
             proxyPass = "http://127.0.0.1:${toString cfg.api.port}/media/";
@@ -817,7 +818,7 @@ in
               proxy_set_header X-Forwarded-Proto $scheme;
             '';
           };
-          
+
           "/static/" = mkIf cfg.api.enable {
             proxyPass = "http://127.0.0.1:${toString cfg.api.port}/static/";
             extraConfig = ''
@@ -827,7 +828,7 @@ in
               proxy_set_header X-Forwarded-Proto $scheme;
             '';
           };
-          
+
           # Main web interface (default/catch-all)
           "/" = mkIf cfg.web.enable {
             proxyPass = "http://127.0.0.1:${toString cfg.web.port}/";
@@ -840,7 +841,7 @@ in
             '';
           };
         };
-        
+
         extraConfig = ''
           client_max_body_size 5M;
         '';
