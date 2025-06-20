@@ -288,6 +288,19 @@ in
       plane = {};
     };
 
+    # MinIO user and group when using local storage
+    users.users = mkIf cfg.storage.local {
+      minio = {
+        isSystemUser = true;
+        group = "minio";
+        description = "MinIO service user";
+      };
+    };
+
+    users.groups = mkIf cfg.storage.local {
+      minio = {};
+    };
+
     # Directory structure
     systemd.tmpfiles.rules = [
       "d ${cfg.stateDir} 0750 ${cfg.user} ${cfg.group} -"
@@ -295,6 +308,8 @@ in
       "d ${cfg.stateDir}/static 0750 ${cfg.user} ${cfg.group} -"
       "d /var/log/plane 0750 ${cfg.user} ${cfg.group} -"
       "d /etc/plane 0755 root root -"
+    ] ++ lib.optionals cfg.storage.local [
+      "d ${cfg.stateDir}/minio 0755 minio minio -"
     ];
 
     # Conditional service dependencies
@@ -405,6 +420,7 @@ in
           EnvironmentFile = "/etc/plane/plane.env";
           ExecStart = "${cfg.package}/bin/plane-migrate";
           RemainAfterExit = true;
+          Path = [ pkgs.bash ];
           
           # Security hardening
           PrivateTmp = true;
