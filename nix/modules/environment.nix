@@ -5,7 +5,7 @@ let
   cfg = config.services.plane;
   
   # Generate environment configuration
-  planeEnvFile = pkgs.writeText "plane.env" ''
+  planeEnvFile = ''
     # Django settings
     DEBUG=0
     DJANGO_SETTINGS_MODULE=plane.settings.production
@@ -50,8 +50,6 @@ let
     SCOUT_MONITOR=0
     SCOUT_KEY=""
   '';
-  
-
 in
 {
   config = mkIf cfg.enable {
