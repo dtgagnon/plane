@@ -99,8 +99,8 @@ in python.pkgs.buildPythonApplication rec {
     true
   '';
   
-  # Post install phase: patch the production settings to respect PLANE_LOG_DIR environment variable
-  postInstall = ''
+  # Use preFixup phase to patch Django settings after all files are installed
+  preFixup = ''
     echo "Patching Django settings to use PLANE_LOG_DIR environment variable"
     settingsFile="$out/share/plane/backend/plane/settings/production.py"
     if [ -f "$settingsFile" ]; then
