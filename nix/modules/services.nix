@@ -6,9 +6,15 @@
 let
   inherit (lib) mkIf;
   cfg = config.services.plane;
+  planeLogDirEnvVar = "PLANE_LOG_DIR=/var/log/plane";
 in
 {
   config = mkIf cfg.enable {
+    # Create logs directory with appropriate permissions
+    systemd.tmpfiles.rules = [
+      "d /var/log/plane 0750 ${cfg.user} ${cfg.group} - -"
+    ];
+    
     # Backend systemd services
     systemd.services = {
       # Database migration service (oneshot)
@@ -28,6 +34,9 @@ in
           Type = "oneshot";
           User = cfg.user;
           Group = cfg.group;
+          Environment = [
+            planeLogDirEnvVar
+          ];
           EnvironmentFile = [
             "/etc/plane/plane.env"
             "/etc/plane/credentials.env"
@@ -57,6 +66,9 @@ in
           Type = "simple";
           User = cfg.user;
           Group = cfg.group;
+          Environment = [
+            planeLogDirEnvVar
+          ];
           EnvironmentFile = [
             "/etc/plane/plane.env"
             "/etc/plane/credentials.env"
@@ -87,6 +99,9 @@ in
           Type = "simple";
           User = cfg.user;
           Group = cfg.group;
+          Environment = [
+            planeLogDirEnvVar
+          ];
           EnvironmentFile = [
             "/etc/plane/plane.env"
             "/etc/plane/credentials.env"
@@ -115,6 +130,9 @@ in
           Type = "simple";
           User = cfg.user;
           Group = cfg.group;
+          Environment = [
+            planeLogDirEnvVar
+          ];
           EnvironmentFile = [
             "/etc/plane/plane.env"
             "/etc/plane/credentials.env"

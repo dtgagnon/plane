@@ -113,6 +113,7 @@ set -e
 cd $out/share/plane/backend
 export PYTHONPATH=$out/share/plane/backend:${python.pkgs.makePythonPath propagatedBuildInputs}:\$PYTHONPATH
 
+
 # Wait for database
 ${python}/bin/python manage.py wait_for_db
 
@@ -159,6 +160,7 @@ set -e
 cd $out/share/plane/backend
 export PYTHONPATH=$out/share/plane/backend:${python.pkgs.makePythonPath propagatedBuildInputs}:\$PYTHONPATH
 
+
 exec ${python.pkgs.celery}/bin/celery \\
   -A plane.celery worker \\
   -l info \\
@@ -172,6 +174,7 @@ set -e
 cd $out/share/plane/backend
 export PYTHONPATH=$out/share/plane/backend:${python.pkgs.makePythonPath propagatedBuildInputs}:\$PYTHONPATH
 
+
 exec ${python.pkgs.celery}/bin/celery \\
   -A plane.celery beat \\
   -l info \\
@@ -184,6 +187,7 @@ EOF
 set -e
 cd $out/share/plane/backend
 export PYTHONPATH=$out/share/plane/backend:${python.pkgs.makePythonPath propagatedBuildInputs}:\$PYTHONPATH
+
 
 echo "Running Django migrations..."
 
