@@ -106,8 +106,10 @@ in python.pkgs.buildPythonApplication rec {
     if [ -f "$settingsFile" ]; then
       # Create backup
       cp "$settingsFile" "$settingsFile.bak"
-      # Replace the log directory settings
+      
+      # More comprehensive patching of logging settings
       sed -i 's|LOG_DIR = os.path.join(BASE_DIR, "logs")  # noqa|LOG_DIR = os.environ.get("PLANE_LOG_DIR", os.path.join(BASE_DIR, "logs"))  # noqa|g' "$settingsFile"
+      sed -i 's|if not os.path.exists(LOG_DIR):|if not os.path.exists(LOG_DIR) and os.access(os.path.dirname(LOG_DIR), os.W_OK):|g' "$settingsFile"
       echo "Settings patched successfully"
     else
       echo "Warning: Could not find settings file at $settingsFile"
@@ -218,6 +220,76 @@ ${python}/bin/python manage.py migrate
 echo "Migrations completed successfully"
 EOF
     chmod +x $out/bin/plane-migrate
+
+    # Create a unified plane command that dispatches to the specific scripts
+    cat > $out/bin/plane << EOF
+#!/usr/bin/env bash
+set -e
+
+COMMAND="\$1"
+shift
+
+case "\$COMMAND" in
+  api)
+    exec $out/bin/plane-api "\$@"
+    ;;
+  worker)
+    exec $out/bin/plane-worker "\$@"
+    ;;
+  beat)
+    exec $out/bin/plane-beat "\$@"
+    ;;
+  migrate)
+    exec $out/bin/plane-migrate "\$@"
+    ;;
+  web)
+    # Try to find plane-web in PATH
+    if command -v plane-web >/dev/null 2>&1; then
+      exec plane-web "\$@"
+    else
+      echo "Web interface command not available in PATH"
+      echo "Please make sure plane-web is installed and in your PATH"
+      exit 1
+    fi
+    ;;
+  admin)
+    # Try to find plane-admin in PATH
+    if command -v plane-admin >/dev/null 2>&1; then
+      exec plane-admin "\$@"
+    else
+      echo "Admin interface command not available in PATH"
+      echo "Please make sure plane-admin is installed and in your PATH"
+      exit 1
+    fi
+    ;;
+  space)
+    # Try to find plane-space in PATH
+    if command -v plane-space >/dev/null 2>&1; then
+      exec plane-space "\$@"
+    else
+      echo "Space interface command not available in PATH"
+      echo "Please make sure plane-space is installed and in your PATH"
+      exit 1
+    fi
+    ;;
+  live)
+    # Try to find plane-live in PATH
+    if command -v plane-live >/dev/null 2>&1; then
+      exec plane-live "\$@"
+    else
+      echo "Live collaboration command not available in PATH"
+      echo "Please make sure plane-live is installed and in your PATH"
+      exit 1
+    fi
+    ;;
+  *)
+    echo "Unknown command: \$COMMAND"
+    echo "Available commands: api, worker, beat, migrate, web, admin, space, live"
+    exit 1
+    ;;
+esac
+EOF
+    chmod +x $out/bin/plane
 
     # Create compatibility symlinks for old names
     ln -s $out/bin/plane-api $out/bin/api
