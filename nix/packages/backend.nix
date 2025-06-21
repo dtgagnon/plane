@@ -107,9 +107,98 @@ in python.pkgs.buildPythonApplication rec {
       # Create backup
       cp "$settingsFile" "$settingsFile.bak"
       
-      # More comprehensive patching of logging settings
-      sed -i 's|LOG_DIR = os.path.join(BASE_DIR, "logs")  # noqa|LOG_DIR = os.environ.get("PLANE_LOG_DIR", os.path.join(BASE_DIR, "logs"))  # noqa|g' "$settingsFile"
-      sed -i 's|if not os.path.exists(LOG_DIR):|if not os.path.exists(LOG_DIR) and os.access(os.path.dirname(LOG_DIR), os.W_OK):|g' "$settingsFile"
+      # Replace the entire file with our patched version
+      cat > "$settingsFile" << 'EOF'
+"""Production settings"""
+
+import os
+
+from .common import *  # noqa
+
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = int(os.environ.get("DEBUG", 0)) == 1
+
+# Honor the 'X-Forwarded-Proto' header for request.is_secure()
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+INSTALLED_APPS += ("scout_apm.django",)  # noqa
+
+
+# Scout Settings
+SCOUT_MONITOR = os.environ.get("SCOUT_MONITOR", False)
+SCOUT_KEY = os.environ.get("SCOUT_KEY", "")
+SCOUT_NAME = "Plane"
+
+# Use environment variable for log directory or fall back to BASE_DIR/logs
+LOG_DIR = os.environ.get("PLANE_LOG_DIR", os.path.join(BASE_DIR, "logs"))  # noqa
+
+# Only create the directory if we have write permissions
+if not os.path.exists(LOG_DIR) and os.access(os.path.dirname(LOG_DIR), os.W_OK):
+    os.makedirs(LOG_DIR)
+
+# Logging configuration
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": True,
+    "formatters": {
+        "verbose": {
+            "format": "%(asctime)s [%(process)d] %(levelname)s %(name)s: %(message)s"
+        },
+        "json": {
+            "()": "pythonjsonlogger.jsonlogger.JsonFormatter",
+            "fmt": "%(levelname)s %(asctime)s %(module)s %(name)s %(message)s",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "json",
+            "level": "INFO",
+        },
+        "file": {
+            "class": "plane.utils.logging.SizedTimedRotatingFileHandler",
+            "filename": (
+                os.path.join(LOG_DIR, "plane-debug.log")  # noqa
+                if DEBUG
+                else os.path.join(LOG_DIR, "plane-error.log")  # noqa
+            ),
+            "when": "s",
+            "maxBytes": 1024 * 1024 * 1,
+            "interval": 1,
+            "backupCount": 5,
+            "formatter": "json",
+            "level": "DEBUG" if DEBUG else "ERROR",
+        },
+    },
+    "loggers": {
+        "plane.api.request": {
+            "level": "DEBUG" if DEBUG else "INFO",
+            "handlers": ["console"],
+            "propagate": False,
+        },
+        "plane.api": {
+            "level": "DEBUG" if DEBUG else "INFO",
+            "handlers": ["console"],
+            "propagate": False,
+        },
+        "plane.worker": {
+            "level": "DEBUG" if DEBUG else "INFO",
+            "handlers": ["console"],
+            "propagate": False,
+        },
+        "plane.exception": {
+            "level": "DEBUG" if DEBUG else "ERROR",
+            "handlers": ["console", "file"],
+            "propagate": False,
+        },
+        "plane.external": {
+            "level": "INFO",
+            "handlers": ["console"],
+            "propagate": False,
+        },
+    },
+}
+EOF
       echo "Settings patched successfully"
     else
       echo "Warning: Could not find settings file at $settingsFile"
@@ -118,10 +207,29 @@ in python.pkgs.buildPythonApplication rec {
 
   installPhase = ''
     # Create directory structure
-    mkdir -p $out/bin $out/share/plane/backend
+    mkdir -p $out/bin $out/share/plane/backend $out/share/plane/settings
     
     # Copy Django application source
     cp -r $src/* $out/share/plane/backend/
+    
+    # Create custom settings override for logs
+    cat > $out/share/plane/settings/logs_override.py << 'EOF'
+"""Settings override for logs"""
+
+import os
+import logging
+
+LOG_DIR = os.environ.get("PLANE_LOG_DIR", os.path.join(os.environ.get("HOME", "/tmp"), ".plane/logs"))
+
+# Only create the directory if we have write permissions
+if not os.path.exists(LOG_DIR) and os.access(os.path.dirname(LOG_DIR), os.W_OK):
+    try:
+        os.makedirs(LOG_DIR)
+    except Exception as e:
+        logging.warning(f"Could not create log directory {LOG_DIR}: {e}")
+        # Fall back to /tmp for logs
+        LOG_DIR = "/tmp"
+EOF
     
     # Create wrapper scripts for different services
     cat > $out/bin/plane-api << EOF
