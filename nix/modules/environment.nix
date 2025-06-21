@@ -35,6 +35,9 @@ let
     WEB_URL=${cfg.storage.protocol}://${cfg.domain}
     CORS_ALLOWED_ORIGINS=${cfg.storage.protocol}://${cfg.domain}
     
+    # Logging configuration
+    PLANE_LOG_DIR=${cfg.logDir}
+    
     # Email settings (defaults - users should override)
     EMAIL_HOST=localhost
     EMAIL_PORT=587

@@ -119,6 +119,7 @@ in python.pkgs.buildPythonApplication rec {
 """Production settings"""
 
 import os
+import logging
 
 from .common import *  # noqa
 
@@ -147,75 +148,117 @@ REDIS_URL = os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/0")
 # Database URL configuration - provide fallback if not set
 DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://plane@localhost:5432/plane")
 
-# Use environment variable for log directory or fall back to BASE_DIR/logs
-LOG_DIR = os.environ.get("PLANE_LOG_DIR", os.path.join(BASE_DIR, "logs"))  # noqa
+# Log directory configuration with robust fallback
+def get_log_dir():
+    """Get the log directory with proper fallback logic"""
+    # Try PLANE_LOG_DIR first
+    plane_log_dir = os.environ.get("PLANE_LOG_DIR")
+    if plane_log_dir:
+        # Check if we can write to the specified directory
+        try:
+            if not os.path.exists(plane_log_dir):
+                # Try to create the directory
+                os.makedirs(plane_log_dir, exist_ok=True)
+            # Test write permissions
+            test_file = os.path.join(plane_log_dir, '.write_test')
+            with open(test_file, 'w') as f:
+                f.write('test')
+            os.remove(test_file)
+            return plane_log_dir
+        except (OSError, IOError, PermissionError) as e:
+            logging.warning(f"Cannot use PLANE_LOG_DIR {plane_log_dir}: {e}")
+    
+    # Fall back to /tmp/plane-logs
+    fallback_dir = "/tmp/plane-logs"
+    try:
+        os.makedirs(fallback_dir, exist_ok=True)
+        return fallback_dir
+    except (OSError, IOError) as e:
+        logging.warning(f"Cannot create fallback log directory {fallback_dir}: {e}")
+        # Final fallback to /tmp
+        return "/tmp"
 
-# Only create the directory if we have write permissions
-if not os.path.exists(LOG_DIR) and os.access(os.path.dirname(LOG_DIR), os.W_OK):
-    os.makedirs(LOG_DIR)
+LOG_DIR = get_log_dir()
 
-# Logging configuration
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": True,
-    "formatters": {
-        "verbose": {
-            "format": "%(asctime)s [%(process)d] %(levelname)s %(name)s: %(message)s"
+# Logging configuration with better error handling
+def get_logging_config():
+    """Get logging configuration with error handling for file handlers"""
+    config = {
+        "version": 1,
+        "disable_existing_loggers": True,
+        "formatters": {
+            "verbose": {
+                "format": "%(asctime)s [%(process)d] %(levelname)s %(name)s: %(message)s"
+            },
+            "json": {
+                "()": "pythonjsonlogger.jsonlogger.JsonFormatter",
+                "fmt": "%(levelname)s %(asctime)s %(module)s %(name)s %(message)s",
+            },
         },
-        "json": {
-            "()": "pythonjsonlogger.jsonlogger.JsonFormatter",
-            "fmt": "%(levelname)s %(asctime)s %(module)s %(name)s %(message)s",
+        "handlers": {
+            "console": {
+                "class": "logging.StreamHandler",
+                "formatter": "json",
+                "level": "INFO",
+            },
         },
-    },
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-            "formatter": "json",
-            "level": "INFO",
+        "loggers": {
+            "plane.api.request": {
+                "level": "DEBUG" if DEBUG else "INFO",
+                "handlers": ["console"],
+                "propagate": False,
+            },
+            "plane.api": {
+                "level": "DEBUG" if DEBUG else "INFO",
+                "handlers": ["console"],
+                "propagate": False,
+            },
+            "plane.worker": {
+                "level": "DEBUG" if DEBUG else "INFO",
+                "handlers": ["console"],
+                "propagate": False,
+            },
+            "plane.exception": {
+                "level": "DEBUG" if DEBUG else "ERROR",
+                "handlers": ["console"],
+                "propagate": False,
+            },
+            "plane.external": {
+                "level": "INFO",
+                "handlers": ["console"],
+                "propagate": False,
+            },
         },
-        "file": {
+    }
+    
+    # Try to add file handler if possible
+    try:
+        log_filename = os.path.join(LOG_DIR, "plane-debug.log" if DEBUG else "plane-error.log")
+        # Test if we can write to the log file
+        with open(log_filename, 'a') as f:
+            pass  # Just test if we can open for writing
+        
+        config["handlers"]["file"] = {
             "class": "plane.utils.logging.SizedTimedRotatingFileHandler",
-            "filename": (
-                os.path.join(LOG_DIR, "plane-debug.log")  # noqa
-                if DEBUG
-                else os.path.join(LOG_DIR, "plane-error.log")  # noqa
-            ),
+            "filename": log_filename,
             "when": "s",
             "maxBytes": 1024 * 1024 * 1,
             "interval": 1,
             "backupCount": 5,
             "formatter": "json",
             "level": "DEBUG" if DEBUG else "ERROR",
-        },
-    },
-    "loggers": {
-        "plane.api.request": {
-            "level": "DEBUG" if DEBUG else "INFO",
-            "handlers": ["console"],
-            "propagate": False,
-        },
-        "plane.api": {
-            "level": "DEBUG" if DEBUG else "INFO",
-            "handlers": ["console"],
-            "propagate": False,
-        },
-        "plane.worker": {
-            "level": "DEBUG" if DEBUG else "INFO",
-            "handlers": ["console"],
-            "propagate": False,
-        },
-        "plane.exception": {
-            "level": "DEBUG" if DEBUG else "ERROR",
-            "handlers": ["console", "file"],
-            "propagate": False,
-        },
-        "plane.external": {
-            "level": "INFO",
-            "handlers": ["console"],
-            "propagate": False,
-        },
-    },
-}
+        }
+        
+        # Add file handler to exception logger
+        config["loggers"]["plane.exception"]["handlers"].append("file")
+        
+    except (OSError, IOError, PermissionError) as e:
+        logging.warning(f"Cannot set up file logging: {e}")
+        # Continue without file logging
+    
+    return config
+
+LOGGING = get_logging_config()
 EOF
       echo "Settings patched successfully"
     else

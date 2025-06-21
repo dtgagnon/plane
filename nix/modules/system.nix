@@ -104,6 +104,9 @@ in
         # API Configuration
         GUNICORN_WORKERS=${toString cfg.api.workers}
         API_KEY_RATE_LIMIT=60/minute
+        
+        # Logging Configuration
+        PLANE_LOG_DIR=${cfg.logDir}
 
         # Service URLs
         NEXT_PUBLIC_API_BASE_URL=https://${cfg.domain}/api
