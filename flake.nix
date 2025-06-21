@@ -21,8 +21,8 @@
         # NixOS module
         nixosModules = let 
           # Function to create a module that uses the flake's own plane package
-          planeModule = { pkgs, ... }: { 
-            imports = [ (import ./nix/modules { planePackage = self.packages.${pkgs.system}.plane; }) ]; 
+          planeModule = { lib, pkgs, ... }: { 
+            imports = [ (import ./nix/modules { inherit lib pkgs; planePackage = self.packages.${pkgs.system}.plane; }) ]; 
           };
         in {
           # Pass the plane package to the module so it can be used directly
