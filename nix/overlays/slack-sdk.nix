@@ -1,5 +1,7 @@
 final: prev: {
-  slack-sdk = prev.slack-sdk.overrideAttrs (oldAttrs: {
-    doCheck = false;
-  });
+  python312Packages = prev.python312Packages // {
+    slack-sdk = prev.python312Packages.slack-sdk.overrideAttrs (oldAttrs: {
+      doCheck = false;
+    });
+  };
 }

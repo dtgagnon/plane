@@ -12,7 +12,7 @@
       let
         pkgs = import nixpkgs {
           inherit system;
-          overlays = import ./nix/overlays;
+          overlays = builtins.attrValues (import ./nix/overlays);
         };
         plane = import ./nix/packages { inherit pkgs system; };
       in {
