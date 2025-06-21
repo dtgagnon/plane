@@ -89,10 +89,10 @@ After installation, you can run `plane` from anywhere.
 
 To modify the Nix packaging:
 
-- `nix/backend.nix` - Django backend packaging
-- `nix/frontend.nix` - Next.js frontends packaging 
-- `nix/package.nix` - Main meta-package configuration
-- `nix/entrypoint.sh` - CLI entrypoint script
+- `nix/packages/backend.nix` - Django backend packaging
+- `nix/packages/frontend.nix` - Next.js frontends packaging 
+- `nix/packages/default.nix` - Main meta-package configuration
+- `nix/modules/default.nix` - NixOS module definition
 
 ## Notes
 

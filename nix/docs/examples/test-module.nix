@@ -5,7 +5,7 @@
 
 let
   # Import the module
-  planeModule = import ./nixos-module.nix;
+  planeModule = import ../modules;
   
   # Create a minimal test configuration
   testConfig = {

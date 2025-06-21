@@ -4,33 +4,33 @@
 
 let
   # Use the repository root as workspace root for frontend builds
-  workspaceRoot = ../.;
+  workspaceRoot = ../..;
   
   # Backend using proper Python packaging
-  backend = pkgs.callPackage ./backend.nix { src = ../apiserver; };
+  backend = pkgs.callPackage ./backend.nix { src = ../../apiserver; };
 
   # Frontend builds using buildNpmPackage with proper workspace support
   frontend-web = pkgs.callPackage ./frontend.nix { 
     name = "plane-web"; 
-    src = ../web; 
+    src = ../../web; 
     inherit workspaceRoot;
   };
   
   frontend-space = pkgs.callPackage ./frontend.nix { 
     name = "plane-space"; 
-    src = ../space; 
+    src = ../../space; 
     inherit workspaceRoot;
   };
   
   frontend-admin = pkgs.callPackage ./frontend.nix { 
     name = "plane-admin"; 
-    src = ../admin; 
+    src = ../../admin; 
     inherit workspaceRoot;
   };
   
   frontend-live = pkgs.callPackage ./frontend.nix { 
     name = "plane-live"; 
-    src = ../live; 
+    src = ../../live; 
     inherit workspaceRoot;
   };
   
@@ -48,57 +48,57 @@ let
       
       # Create a clean environment configuration template
       cat > $out/share/plane/config/.env.example << 'EOF'
-# Plane Configuration for Native Deployment
-APP_DOMAIN=localhost
-WEB_URL=http://localhost:3000
-DEBUG=0
-CORS_ALLOWED_ORIGINS=http://localhost:3000
+      # Plane Configuration for Native Deployment
+      APP_DOMAIN=localhost
+      WEB_URL=http://localhost:3000
+      DEBUG=0
+      CORS_ALLOWED_ORIGINS=http://localhost:3000
 
-# Database Settings (PostgreSQL)
-PGHOST=localhost
-PGDATABASE=plane
-POSTGRES_USER=plane
-POSTGRES_PASSWORD=plane
-POSTGRES_DB=plane
-POSTGRES_PORT=5432
-DATABASE_URL=postgresql://plane:plane@localhost:5432/plane
+      # Database Settings (PostgreSQL)
+      PGHOST=localhost
+      PGDATABASE=plane
+      POSTGRES_USER=plane
+      POSTGRES_PASSWORD=plane
+      POSTGRES_DB=plane
+      POSTGRES_PORT=5432
+      DATABASE_URL=postgresql://plane:plane@localhost:5432/plane
 
-# Redis Settings  
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_URL=redis://localhost:6379
+      # Redis Settings  
+      REDIS_HOST=localhost
+      REDIS_PORT=6379
+      REDIS_URL=redis://localhost:6379
 
-# RabbitMQ Settings (for Celery)
-RABBITMQ_HOST=localhost
-RABBITMQ_PORT=5672
-RABBITMQ_USER=plane
-RABBITMQ_PASSWORD=plane
-RABBITMQ_VHOST=plane
-AMQP_URL=amqp://plane:plane@localhost:5672/plane
+      # RabbitMQ Settings (for Celery)
+      RABBITMQ_HOST=localhost
+      RABBITMQ_PORT=5672
+      RABBITMQ_USER=plane
+      RABBITMQ_PASSWORD=plane
+      RABBITMQ_VHOST=plane
+      AMQP_URL=amqp://plane:plane@localhost:5672/plane
 
-# Secret Key (change this in production!)
-SECRET_KEY=change-this-secret-key-in-production
+      # Secret Key (change this in production!)
+      SECRET_KEY=change-this-secret-key-in-production
 
-# File Storage Settings
-USE_MINIO=0
-FILE_SIZE_LIMIT=5242880
+      # File Storage Settings
+      USE_MINIO=0
+      FILE_SIZE_LIMIT=5242880
 
-# For local file storage (when USE_MINIO=0)
-MEDIA_ROOT=/tmp/plane/media
-STATIC_ROOT=/tmp/plane/static
+      # For local file storage (when USE_MINIO=0)
+      MEDIA_ROOT=/tmp/plane/media
+      STATIC_ROOT=/tmp/plane/static
 
-# Gunicorn Workers
-GUNICORN_WORKERS=4
+      # Gunicorn Workers
+      GUNICORN_WORKERS=4
 
-# API rate limiting
-API_KEY_RATE_LIMIT=60/minute
+      # API rate limiting
+      API_KEY_RATE_LIMIT=60/minute
 
-# Service URLs for frontend apps
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
-NEXT_PUBLIC_WEB_BASE_URL=http://localhost:3000
-NEXT_PUBLIC_SPACE_BASE_URL=http://localhost:3002
-NEXT_PUBLIC_ADMIN_BASE_URL=http://localhost:3001
-EOF
+      # Service URLs for frontend apps
+      NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+      NEXT_PUBLIC_WEB_BASE_URL=http://localhost:3000
+      NEXT_PUBLIC_SPACE_BASE_URL=http://localhost:3002
+      NEXT_PUBLIC_ADMIN_BASE_URL=http://localhost:3001
+      EOF
     '';
   };
   

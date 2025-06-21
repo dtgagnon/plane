@@ -4,7 +4,7 @@
 {
   # Import the Plane module
   imports = [
-    ./nixos-module.nix
+    ../modules
   ];
 
   # Basic Plane configuration with all local services

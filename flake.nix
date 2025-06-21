@@ -11,7 +11,7 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
-        plane = import ./nix/package.nix { inherit pkgs system; };
+        plane = import ./nix/packages { inherit pkgs system; };
       in {
         packages = {
           default = plane;
@@ -20,8 +20,8 @@
       }) // {
         # NixOS module
         nixosModules = {
-          default = import ./nix/nixos-module.nix;
-          plane = import ./nix/nixos-module.nix;
+          default = import ./nix/modules;
+          plane = import ./nix/modules;
         };
       };
 }
