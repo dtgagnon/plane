@@ -38,6 +38,12 @@ in
       description = "The state directory for the Plane service.";
     };
 
+    logDir = mkOption {
+      type = types.str;
+      default = "/var/log/plane";
+      description = "The log directory for the Plane service.";
+    };
+
     secretKeyFile = mkOption {
       type = types.str;
       description = "Path to file containing the Django secret key for the Plane service.";
