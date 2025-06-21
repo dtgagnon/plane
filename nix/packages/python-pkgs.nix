@@ -153,4 +153,58 @@ EOF
       maintainers = [ ];
     };
   };
+
+  # PostHog analytics client - minimal stub to satisfy Plane import
+  posthog = buildPythonPackage rec {
+    pname = "posthog";
+    version = "3.4.0";
+
+    # Create a minimal stub implementation
+    src = pkgs.writeText "posthog-setup.py" ''
+      from setuptools import setup, find_packages
+
+      setup(
+          name="posthog",
+          version="3.4.0",
+          packages=["posthog"],
+          install_requires=["requests"],
+      )
+    '';
+
+    unpackPhase = ''
+      mkdir -p posthog/posthog
+      cd posthog
+
+      # Provide extremely small API surface just to avoid import errors
+      cat > posthog/__init__.py << 'EOF'
+"""
+Minimal PostHog analytics stub for Plane
+Provides a Posthog object with no-op capture/flush methods.
+"""
+
+def Posthog(*args, **kwargs):
+    class _Stub:
+        def capture(self, *args, **kwargs):
+            pass
+        def flush(self):
+            pass
+    return _Stub()
+EOF
+
+      # Copy stub setup.py
+      cp ${src} setup.py
+    '';
+
+    propagatedBuildInputs = with python.pkgs; [
+      requests
+    ];
+
+    doCheck = false;
+
+    meta = with pkgs.lib; {
+      description = "Minimal PostHog stub implementation for Plane";
+      license = licenses.mit;
+      maintainers = [ ];
+    };
+  };
 }

@@ -95,6 +95,7 @@ in python.pkgs.buildPythonApplication rec {
     
     # Custom packages (not in nixpkgs)
     customPythonPkgs.scout-apm
+    customPythonPkgs.posthog
   ];
 
   # Don't run tests during build
