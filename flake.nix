@@ -10,7 +10,10 @@
   outputs = { self, nixpkgs, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = import nixpkgs { inherit system; };
+        pkgs = import nixpkgs {
+          inherit system;
+          overlays = import ./nix/overlays;
+        };
         plane = import ./nix/packages { inherit pkgs system; };
       in {
         packages = {
@@ -18,6 +21,7 @@
           plane = plane;
         };
       }) // {
+        overlays = import ./nix/overlays;
         # NixOS module
         nixosModules = let 
           # Function to create a module that uses the flake's own plane package

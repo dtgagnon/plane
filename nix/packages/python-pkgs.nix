@@ -110,30 +110,30 @@ EOF
       
       # Create __init__.py with minimal scout functionality
       cat > scout_apm/__init__.py << 'EOF'
-"""
-Minimal scout-apm stub implementation for Plane
-"""
-# Minimal stubs for scout-apm to prevent import errors
-class Config:
-    def __init__(self, **kwargs):
-        for k, v in kwargs.items():
-            setattr(self, k, v)
+      """
+      Minimal scout-apm stub implementation for Plane
+      """
+      # Minimal stubs for scout-apm to prevent import errors
+      class Config:
+          def __init__(self, **kwargs):
+              for k, v in kwargs.items():
+                  setattr(self, k, v)
 
-def install(config=None):
-    """Stub install function"""
-    pass
+      def install(config=None):
+          """Stub install function"""
+          pass
 
-__version__ = "3.1.0"
-EOF
+      __version__ = "3.1.0"
+      EOF
 
-      # Create Django integration stub
-      cat > scout_apm/django/__init__.py << 'EOF'
-"""
-Minimal scout-apm Django integration stub
-"""
-# This is a stub to prevent Django from crashing when scout_apm.django is in INSTALLED_APPS
-# but scout APM is not actually configured or needed
-EOF
+            # Create Django integration stub
+            cat > scout_apm/django/__init__.py << 'EOF'
+      """
+      Minimal scout-apm Django integration stub
+      """
+      # This is a stub to prevent Django from crashing when scout_apm.django is in INSTALLED_APPS
+      # but scout APM is not actually configured or needed
+      EOF
       
       # Create setup.py 
       cp ${src} setup.py
@@ -157,11 +157,11 @@ EOF
   # Jsonmodels - lightweight JSON data models; pull directly from PyPI
   jsonmodels = buildPythonPackage rec {
     pname = "jsonmodels";
-    version = "2.7";
+    version = "2.7.0";
 
     src = fetchPypi {
       inherit pname version;
-      sha256 = "sha256-1fqq3ba1qxjwzjsh464j637dc3za6pbhfx8j07jc6ai5ppqrn0cc";
+      sha256 = "sha256-jAGb8b0lKsPkARJ1B9c16g/WzjCSGAK1/Fx2HNQaGLs=";
     };
 
     propagatedBuildInputs = with python.pkgs; [];
