@@ -98,6 +98,21 @@ in python.pkgs.buildPythonApplication rec {
     # Nothing to build for Django app
     true
   '';
+  
+  # Post install phase: patch the production settings to respect PLANE_LOG_DIR environment variable
+  postInstall = ''
+    echo "Patching Django settings to use PLANE_LOG_DIR environment variable"
+    settingsFile="$out/share/plane/backend/plane/settings/production.py"
+    if [ -f "$settingsFile" ]; then
+      # Create backup
+      cp "$settingsFile" "$settingsFile.bak"
+      # Replace the log directory settings
+      sed -i 's|LOG_DIR = os.path.join(BASE_DIR, "logs")  # noqa|LOG_DIR = os.environ.get("PLANE_LOG_DIR", os.path.join(BASE_DIR, "logs"))  # noqa|g' "$settingsFile"
+      echo "Settings patched successfully"
+    else
+      echo "Warning: Could not find settings file at $settingsFile"
+    fi
+  '';
 
   installPhase = ''
     # Create directory structure
