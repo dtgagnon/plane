@@ -286,7 +286,7 @@ in
     };
 
     users.groups = mkIf (cfg.group == "plane") {
-      plane = {};
+      plane = { };
     };
 
     # Directory structure
@@ -332,7 +332,7 @@ in
     services.minio = mkIf cfg.storage.local {
       enable = true;
       listenAddress = "${cfg.storage.host}:${toString cfg.storage.port}";
-      dataDir = [ "${cfg.stateDir}/minio" ];  # Stores data within plane stateDir for organization
+      dataDir = [ "${cfg.stateDir}/minio" ]; # Stores data within plane stateDir for organization
       rootCredentialsFile = cfg.storage.credentialsFile;
     };
 
@@ -395,6 +395,7 @@ in
       plane-migrate = mkIf cfg.api.enable {
         description = "Plane database migration";
         wantedBy = [ "multi-user.target" ];
+        path = [ pkgs.bash ];
         after = [ "network.target" ]
           ++ lib.optional cfg.database.local "postgresql.service"
           ++ lib.optional cfg.cache.local "redis-plane.service"
@@ -411,7 +412,6 @@ in
           EnvironmentFile = "/etc/plane/plane.env";
           ExecStart = "${cfg.package}/bin/plane-migrate";
           RemainAfterExit = true;
-          Path = [ pkgs.bash ];
 
           # Security hardening
           PrivateTmp = true;
