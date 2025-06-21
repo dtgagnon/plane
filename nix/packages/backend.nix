@@ -49,6 +49,13 @@ in python.pkgs.buildPythonApplication rec {
     django-celery-beat
     django-celery-results
     python-json-logger # For JSON formatting in Celery logs
+    jsonmodels
+    slack_sdk
+    zxcvbn
+    opentelemetry-api
+    opentelemetry-sdk
+    opentelemetry-instrumentation-django
+    opentelemetry-exporter-otlp
     
     # File serving
     whitenoise

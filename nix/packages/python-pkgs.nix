@@ -155,6 +155,25 @@ EOF
   };
 
   # PostHog analytics client - minimal stub to satisfy Plane import
+  # Jsonmodels - lightweight JSON data models; pull directly from PyPI
+  jsonmodels = buildPythonPackage rec {
+    pname = "jsonmodels";
+    version = "2.7";
+
+    src = fetchPypi {
+      inherit pname version;
+      sha256 = "sha256-"; # filler placeholder, user should update
+    };
+
+    propagatedBuildInputs = with python.pkgs; [];
+    doCheck = false;
+    meta = with pkgs.lib; {
+      description = "Data validation and modelling based on Python dataclasses with JSON serialization";
+      license = licenses.mit;
+      maintainers = [];
+    };
+  };
+
   posthog = buildPythonPackage rec {
     pname = "posthog";
     version = "3.4.0";
