@@ -47,6 +47,7 @@ in python.pkgs.buildPythonApplication rec {
     celery
     django-celery-beat
     django-celery-results
+    python-json-logger # For JSON formatting in Celery logs
     
     # File serving
     whitenoise
