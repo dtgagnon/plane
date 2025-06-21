@@ -53,7 +53,7 @@ in
       "d ${cfg.stateDir} 0750 ${cfg.user} ${cfg.group} -"
       "d ${cfg.stateDir}/media 0750 ${cfg.user} ${cfg.group} -"
       "d ${cfg.stateDir}/static 0750 ${cfg.user} ${cfg.group} -"
-      "d /var/log/plane 0750 ${cfg.user} ${cfg.group} -"
+      "d ${cfg.logDir} 0750 ${cfg.user} ${cfg.group} -"
       "d /etc/plane 0755 root root -"
     ] ++ lib.optionals cfg.storage.local [
       # MinIO data directory within plane stateDir - user creation handled by services.minio
@@ -113,6 +113,18 @@ in
         NEXT_PUBLIC_WEB_BASE_URL=https://${cfg.domain}
         NEXT_PUBLIC_SPACE_BASE_URL=https://${cfg.domain}/spaces
         NEXT_PUBLIC_ADMIN_BASE_URL=https://${cfg.domain}/god-mode
+        
+        # Email settings (defaults - users should override)
+        EMAIL_HOST=localhost
+        EMAIL_PORT=587
+        EMAIL_USE_TLS=1
+        
+        # Sentry (optional)
+        SENTRY_DSN=""
+        
+        # Scout APM (optional)
+        SCOUT_MONITOR=0
+        SCOUT_KEY=""
       '';
     };
 
