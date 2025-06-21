@@ -17,13 +17,14 @@
           default = plane;
           plane = plane;
         };
-      }) // 
-      let
-        planeModule = { pkgs, ... }: { imports = [ (import ./nix/modules { planePackage = self.packages.${pkgs.system}.plane; }) ]; };
-      in
-      {
+      }) // {
         # NixOS module
-        nixosModules = {
+        nixosModules = let 
+          # Function to create a module that uses the flake's own plane package
+          planeModule = { pkgs, ... }: { 
+            imports = [ (import ./nix/modules { planePackage = self.packages.${pkgs.system}.plane; }) ]; 
+          };
+        in {
           # Pass the plane package to the module so it can be used directly
           default = planeModule;
           plane = planeModule;
