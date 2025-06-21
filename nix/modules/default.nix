@@ -8,5 +8,6 @@
     ./services.nix
     ./networking.nix
     ./dependencies.nix
+    ./environment.nix
   ];
 }

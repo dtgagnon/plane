@@ -1,9 +1,10 @@
-{ pkgs, src ? ../apiserver }:
+{ pkgs, lib ? pkgs.lib, src ? ../apiserver }:
 
 # Plane backend derivation using buildPythonApplication for proper dependency management
 
 let
   python = pkgs.python312;
+  customPythonPkgs = pkgs.callPackage ./python-pkgs.nix { inherit python; };
   
 in python.pkgs.buildPythonApplication rec {
   pname = "plane-backend";
@@ -61,6 +62,9 @@ in python.pkgs.buildPythonApplication rec {
     django-filter
     django-storages
     
+    # Django utilities
+    customPythonPkgs.django-crum
+    
     # Communication
     channels
     
@@ -88,6 +92,9 @@ in python.pkgs.buildPythonApplication rec {
     setuptools
     wheel
     pip
+    
+    # Custom packages (not in nixpkgs)
+    customPythonPkgs.scout-apm
   ];
 
   # Don't run tests during build
@@ -121,13 +128,24 @@ DEBUG = int(os.environ.get("DEBUG", 0)) == 1
 # Honor the 'X-Forwarded-Proto' header for request.is_secure()
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
-INSTALLED_APPS += ("scout_apm.django",)  # noqa
+# Only add scout_apm if available
+try:
+    import scout_apm.django
+    INSTALLED_APPS += ("scout_apm.django",)  # noqa
+except ImportError:
+    pass  # scout_apm not available, continue without it
 
 
 # Scout Settings
 SCOUT_MONITOR = os.environ.get("SCOUT_MONITOR", False)
 SCOUT_KEY = os.environ.get("SCOUT_KEY", "")
 SCOUT_NAME = "Plane"
+
+# Redis URL configuration - provide fallback if not set
+REDIS_URL = os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/0")
+
+# Database URL configuration - provide fallback if not set
+DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://plane@localhost:5432/plane")
 
 # Use environment variable for log directory or fall back to BASE_DIR/logs
 LOG_DIR = os.environ.get("PLANE_LOG_DIR", os.path.join(BASE_DIR, "logs"))  # noqa

@@ -1,7 +1,6 @@
 { pkgs, name, src, workspaceRoot }:
 
-# Build Next.js app for Plane - minimal implementation for now
-# TODO: Implement proper Next.js build with yarn workspace support
+# Simple wrapper for Plane frontend apps - development mode until proper build is implemented
 
 let
   # Convert app name to binary name (e.g., "plane-web" -> "web") 
@@ -14,28 +13,30 @@ in pkgs.stdenv.mkDerivation {
   # Use the specific app source directory
   src = src;
   
-  # Minimal build inputs
+  # Build inputs  
   nativeBuildInputs = with pkgs; [
     nodejs
+    yarn
   ];
   
   # Don't run tests during build
   doCheck = false;
 
-  # Skip building for now - just package the source
+  # Build phase - just check that source is valid
   buildPhase = ''
-    echo "Skipping build phase - packaging source only"
+    echo "Preparing ${name} for development deployment..."
+    ls -la . || true
   '';
 
   installPhase = ''
     # Create directory structure
     mkdir -p $out/bin $out/share/${name}
     
-    # Copy the source as-is
+    # Copy the source
     cp -r $src/* $out/share/${name}/
     
-    # Create wrapper script for development server
-    cat > $out/bin/plane-${binName} << EOF
+    # Create startup script that runs a development server
+    cat > $out/bin/plane-${binName} << 'EOF'
 #!/usr/bin/env bash
 set -e
 
@@ -58,21 +59,27 @@ case "${binName}" in
     ;;
 esac
 
-PORT=\$\{PORT:-\$DEFAULT_PORT\}
+PORT="''${PORT:-$DEFAULT_PORT}"
 export PORT
 
-echo "Starting ${name} on port \$PORT..."
-echo ""
-echo "Note: This is a minimal source-only package."
-echo "For development, the source is available at: $out/share/${name}/"
-echo ""
-echo "To run in development mode:"
-echo "1. cd $out/share/${name}/"
-echo "2. yarn install"
-echo "3. yarn dev"
-echo ""
-echo "Contents of $out/share/${name}/:"
-ls -la $out/share/${name}/ 2>/dev/null || echo "Directory not found"
+echo "Starting ${name} development server on port $PORT..."
+echo "Source directory: $out/share/${name}/"
+
+# Change to app directory
+cd $out/share/${name}
+
+# Check if dependencies are installed
+if [ ! -d "node_modules" ]; then
+  echo "Installing dependencies..."
+  ${pkgs.yarn}/bin/yarn install --frozen-lockfile || {
+    echo "Warning: Failed to install dependencies with --frozen-lockfile, trying without..."
+    ${pkgs.yarn}/bin/yarn install
+  }
+fi
+
+# Start development server
+echo "Starting Next.js development server..."
+exec ${pkgs.yarn}/bin/yarn dev --port "$PORT"
 EOF
     chmod +x $out/bin/plane-${binName}
     
