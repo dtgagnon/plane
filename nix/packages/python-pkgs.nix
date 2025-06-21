@@ -162,7 +162,7 @@ EOF
 
     src = fetchPypi {
       inherit pname version;
-      sha256 = "sha256-"; # filler placeholder, user should update
+      sha256 = "sha256-1fqq3ba1qxjwzjsh464j637dc3za6pbhfx8j07jc6ai5ppqrn0cc";
     };
 
     propagatedBuildInputs = with python.pkgs; [];
