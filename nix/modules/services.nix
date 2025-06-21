@@ -1,5 +1,7 @@
-{ config, lib, ... }:
-
+{ lib
+, config
+, ...
+}:
 let
   inherit (lib) mkIf;
   cfg = config.services.plane;

@@ -1,5 +1,7 @@
-{ config, lib, ... }:
-
+{ lib
+, config
+, ...
+}:
 let
   inherit (lib) mkIf;
   cfg = config.services.plane;
@@ -121,19 +123,19 @@ in
 
       # Django secret key
       echo "SECRET_KEY=$(cat ${cfg.secretKeyFile})" > /etc/plane/credentials.env
-      
+
       # Database password if configured
       ${lib.optionalString (cfg.database.passwordFile != null) ''
         echo "POSTGRES_PASSWORD=$(cat ${cfg.database.passwordFile})" >> /etc/plane/credentials.env
         echo "DATABASE_URL=postgresql://${cfg.database.user}:$(cat ${cfg.database.passwordFile})@${cfg.database.host}:${toString cfg.database.port}/${cfg.database.name}" >> /etc/plane/credentials.env
       ''}
-      
+
       # RabbitMQ password if configured
       ${lib.optionalString (cfg.rabbitmq.passwordFile != null) ''
         echo "RABBITMQ_PASSWORD=$(cat ${cfg.rabbitmq.passwordFile})" >> /etc/plane/credentials.env
         echo "AMQP_URL=amqp://${cfg.rabbitmq.user}:$(cat ${cfg.rabbitmq.passwordFile})@${cfg.rabbitmq.host}:${toString cfg.rabbitmq.port}/${cfg.rabbitmq.vhost}" >> /etc/plane/credentials.env
       ''}
-      
+
       # S3 credentials if configured
       ${lib.optionalString (cfg.storage.credentialsFile != null) ''
         AWS_ACCESS_KEY_ID=$(head -n 1 ${cfg.storage.credentialsFile})

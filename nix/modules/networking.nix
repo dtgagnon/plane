@@ -1,7 +1,9 @@
-{ config, lib, ... }:
-
+{ lib
+, config
+, ...
+}:
 let
-  inherit (lib) mkIf mkMerge;
+  inherit (lib) mkIf;
   cfg = config.services.plane;
 in
 {
@@ -9,13 +11,13 @@ in
     # Nginx reverse proxy configuration
     services.nginx = mkIf cfg.nginx.enable {
       enable = true;
-      
+
       # HTTP -> HTTPS redirection and ACME configuration
       virtualHosts = {
         ${cfg.domain} = {
           enableACME = cfg.acme.enable;
           forceSSL = cfg.acme.enable;
-          
+
           locations = {
             # API backend
             "/api/" = mkIf cfg.api.enable {
@@ -28,7 +30,7 @@ in
                 proxy_set_header X-Forwarded-Proto $scheme;
               '';
             };
-            
+
             # Main web interface
             "/" = mkIf cfg.web.enable {
               proxyPass = "http://127.0.0.1:${toString cfg.web.port}";
@@ -40,7 +42,7 @@ in
                 proxy_set_header X-Forwarded-Proto $scheme;
               '';
             };
-            
+
             # Admin interface
             "/god-mode/" = mkIf cfg.admin.enable {
               proxyPass = "http://127.0.0.1:${toString cfg.admin.port}/";
@@ -52,7 +54,7 @@ in
                 proxy_set_header X-Forwarded-Proto $scheme;
               '';
             };
-            
+
             # Space interface
             "/spaces/" = mkIf cfg.space.enable {
               proxyPass = "http://127.0.0.1:${toString cfg.space.port}/";
@@ -64,7 +66,7 @@ in
                 proxy_set_header X-Forwarded-Proto $scheme;
               '';
             };
-            
+
             # Live collaboration interface
             "/live/" = mkIf cfg.live.enable {
               proxyPass = "http://127.0.0.1:${toString cfg.live.port}/";

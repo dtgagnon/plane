@@ -1,4 +1,4 @@
-{ lib, pkgs, config, ... }:
+{ ... }:
 
 # Import all submodules to build a complete configuration
 {
