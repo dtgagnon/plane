@@ -1,9 +1,10 @@
-{ ... }:
+{ planePackage ? null, ... }:
 
 # Import all submodules to build a complete configuration
 {
   imports = [
-    ./options.nix
+    # Pass the package to options.nix
+    (import ./options.nix { inherit planePackage; })
     ./system.nix
     ./services.nix
     ./networking.nix

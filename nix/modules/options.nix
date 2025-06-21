@@ -1,4 +1,4 @@
-{ lib, pkgs, ... }:
+{ lib, pkgs, planePackage ? null, ... }:
 
 let
   inherit (lib) mkEnableOption mkOption types literalExpression;
@@ -9,8 +9,10 @@ in
 
     package = mkOption {
       type = types.package;
-      default = pkgs.plane or (throw "plane package not found in pkgs");
-      defaultText = literalExpression "pkgs.plane";
+      default = if planePackage != null 
+               then planePackage 
+               else pkgs.plane or (throw "plane package not found in pkgs");
+      defaultText = literalExpression "planePackage or pkgs.plane";
       description = "The Plane package to use.";
     };
 
