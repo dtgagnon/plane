@@ -154,7 +154,6 @@ EOF
     };
   };
 
-  # PostHog analytics client - minimal stub to satisfy Plane import
   # Jsonmodels - lightweight JSON data models; pull directly from PyPI
   jsonmodels = buildPythonPackage rec {
     pname = "jsonmodels";
@@ -174,6 +173,7 @@ EOF
     };
   };
 
+  # PostHog analytics client - minimal stub to satisfy Plane import
   posthog = buildPythonPackage rec {
     pname = "posthog";
     version = "3.4.0";

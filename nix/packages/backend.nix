@@ -50,7 +50,7 @@ in python.pkgs.buildPythonApplication rec {
     django-celery-results
     python-json-logger # For JSON formatting in Celery logs
     customPythonPkgs.jsonmodels
-    slack_sdk
+    slack-sdk
     zxcvbn
     opentelemetry-api
     opentelemetry-sdk
