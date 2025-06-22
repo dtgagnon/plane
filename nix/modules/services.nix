@@ -64,7 +64,7 @@ in
             "PLANE_LOG_DIR=${cfg.logDir}"
           ];
           EnvironmentFile = [
-            "/etc/plane/plane.env",
+            "/etc/plane/plane.env"
             "/etc/plane/credentials.env"
           ];
           WorkingDirectory = "/tmp";
@@ -97,7 +97,7 @@ in
             "PLANE_LOG_DIR=${cfg.logDir}"
           ];
           EnvironmentFile = [
-            "/etc/plane/plane.env",
+            "/etc/plane/plane.env"
             "/etc/plane/credentials.env"
           ];
           WorkingDirectory = "/tmp";
