@@ -123,7 +123,7 @@ in
         AWS_S3_ENDPOINT_URL=${cfg.storage.protocol}://${cfg.storage.host}:${toString cfg.storage.port}
         AWS_S3_BUCKET_NAME=${cfg.storage.bucket}
       '') +
-      mkIf cfg.email.enable ''
+      lib.optionalString cfg.email.enable ''
         EMAIL_HOST=${cfg.email.host}
         EMAIL_PORT=${toString cfg.email.port}
         EMAIL_USE_TLS=${if cfg.email.useTLS then "1" else "0"}
