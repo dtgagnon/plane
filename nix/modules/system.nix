@@ -109,17 +109,13 @@ in
       (if cfg.storage.local then ''
         # Data Storage Configuration
         USE_MINIO=1
-        MINIO_ROOT_USER=${cfg.storage.accessKey}
-        MINIO_ROOT_PASSWORD=${cfg.storage.secretKey}
         BUCKET_NAME=${cfg.storage.bucket}
-        FILE_SIZE_LIMIT=5242880
+        FILE_SIZE_LIMIT=${toString cfg.storage.fileSizeLimit}
       '' else ''
         # Data Storage Configuration
         USE_MINIO=0
-        FILE_SIZE_LIMIT=5242880
+        FILE_SIZE_LIMIT=${toString cfg.storage.fileSizeLimit}
         AWS_REGION=${cfg.storage.region}
-        AWS_ACCESS_KEY_ID=${cfg.storage.accessKey}
-        AWS_SECRET_ACCESS_KEY=${cfg.storage.secretKey}
         AWS_S3_ENDPOINT_URL=${cfg.storage.protocol}://${cfg.storage.host}:${toString cfg.storage.port}
         AWS_S3_BUCKET_NAME=${cfg.storage.bucket}
       '') +
@@ -146,19 +142,22 @@ in
         echo "POSTGRES_PASSWORD=$(cat ${cfg.database.passwordFile})" >> /etc/plane/credentials.env
         echo "DATABASE_URL=postgresql://${cfg.database.user}:$(cat ${cfg.database.passwordFile})@${cfg.database.host}:${toString cfg.database.port}/${cfg.database.name}" >> /etc/plane/credentials.env
       ''}
+      
+      ${lib.optionalString (cfg.storage.local && cfg.storage.credentialsFile != null) ''
+        echo "MINIO_ROOT_USER=$(head -n 1 ${cfg.storage.credentialsFile})" >> /etc/plane/credentials.env
+        echo "MINIO_ROOT_PASSWORD=$(tail -n 1 ${cfg.storage.credentialsFile})" >> /etc/plane/credentials.env
+      ''}
+
+      # S3 credentials if configured
+      ${lib.optionalString (!cfg.storage.local && cfg.storage.credentialsFile != null) ''
+        echo "AWS_ACCESS_KEY_ID=$(head -n 1 ${cfg.storage.credentialsFile})" >> /etc/plane/credentials.env
+        echo "AWS_SECRET_ACCESS_KEY=$(tail -n 1 ${cfg.storage.credentialsFile})" >> /etc/plane/credentials.env
+      ''}
 
       # RabbitMQ password if configured
       ${lib.optionalString (cfg.rabbitmq.passwordFile != null) ''
         echo "RABBITMQ_PASSWORD=$(cat ${cfg.rabbitmq.passwordFile})" >> /etc/plane/credentials.env
         echo "AMQP_URL=amqp://${cfg.rabbitmq.user}:$(cat ${cfg.rabbitmq.passwordFile})@${cfg.rabbitmq.host}:${toString cfg.rabbitmq.port}/${cfg.rabbitmq.vhost}" >> /etc/plane/credentials.env
-      ''}
-
-      # S3 credentials if configured
-      ${lib.optionalString (!cfg.storage.local && cfg.storage.credentialsFile != null) ''
-        AWS_ACCESS_KEY_ID=$(head -n 1 ${cfg.storage.credentialsFile})
-        AWS_SECRET_ACCESS_KEY=$(tail -n 1 ${cfg.storage.credentialsFile})
-        echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> /etc/plane/credentials.env
-        echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" >> /etc/plane/credentials.env
       ''}
     '';
   };

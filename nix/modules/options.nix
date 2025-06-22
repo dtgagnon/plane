@@ -179,6 +179,12 @@ in
         description = "The port of the Plane storage service.";
       };
 
+      fileSizeLimit = mkOption {
+        type = types.ints.positive;
+        default = 5242880; # 5MB in bytes
+        description = "Maximum file size limit for uploads in bytes.";
+      };
+
       bucket = mkOption {
         type = types.str;
         default = "plane-uploads";
