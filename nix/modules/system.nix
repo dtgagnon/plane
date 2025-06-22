@@ -74,7 +74,7 @@ in
         PGDATABASE=${lib.optionalString (!cfg.database.local) cfg.database.name}
         POSTGRES_DB=${cfg.database.name}
         POSTGRES_PORT=${toString cfg.database.port}
-        ${lib.optional (cfg.database.local) "PGDATA=${cfg.stateDir}/postgres"}
+        ${lib.optionalString (cfg.database.local) "PGDATA=${cfg.stateDir}/postgres"}
 
         # Redis Configuration
         REDIS_HOST=${cfg.cache.host}
