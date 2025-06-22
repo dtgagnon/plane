@@ -71,7 +71,7 @@ in
 
         # Database Configuration
         PGHOST=${cfg.database.host}
-        PGDATABASE=${lib.optional (! cfg.database.local) cfg.database.name}
+        PGDATABASE=${lib.optionalString (!cfg.database.local) cfg.database.name}
         POSTGRES_DB=${cfg.database.name}
         POSTGRES_PORT=${toString cfg.database.port}
         ${lib.optional (cfg.database.local) "PGDATA=${cfg.stateDir}/postgres"}
