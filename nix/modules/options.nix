@@ -40,6 +40,12 @@ in
       description = "The state directory for the Plane service.";
     };
 
+    dataDir = mkOption {
+      type = types.str;
+      default = "/var/lib/plane/data";
+      description = "The data directory for the Plane service.";
+    };
+
     logDir = mkOption {
       type = types.str;
       default = "/var/log/plane";
