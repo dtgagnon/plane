@@ -24,7 +24,7 @@ in
       ];
     };
     systemd.tmpfiles.rules = [
-      "d ${cfg.dataDir}/postgres 0750 postgres postgres -"
+      "d ${cfg.dataDir} 0750 postgres postgres -"
     ];
     # Set the postgresql password on every start to ensure it's always in sync.
     systemd.services.postgresql.serviceConfig.postStart = mkIf cfg.database.local ''
