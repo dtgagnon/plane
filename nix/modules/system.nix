@@ -144,8 +144,8 @@ in
       ''}
       
       ${lib.optionalString (cfg.storage.local && cfg.storage.credentialsFile != null) ''
-        echo "MINIO_ROOT_USER=$(head -n 1 ${cfg.storage.credentialsFile})" >> /etc/plane/credentials.env
-        echo "MINIO_ROOT_PASSWORD=$(tail -n 1 ${cfg.storage.credentialsFile})" >> /etc/plane/credentials.env
+        echo "$(head -n 1 ${cfg.storage.credentialsFile})" >> /etc/plane/credentials.env
+        echo "$(tail -n 1 ${cfg.storage.credentialsFile})" >> /etc/plane/credentials.env
       ''}
 
       # S3 credentials if configured

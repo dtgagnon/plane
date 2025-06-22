@@ -45,6 +45,7 @@ in
       plane-api = mkIf cfg.api.enable {
         description = "Plane API server";
         wantedBy = [ "multi-user.target" ];
+        path = [ pkgs.bash ];
         after = [ "network.target" "plane-migrate.service" ]
           ++ lib.optional cfg.database.local "postgresql.service"
           ++ lib.optional cfg.cache.local "redis-plane.service"
@@ -78,6 +79,7 @@ in
       plane-worker = mkIf cfg.worker.enable {
         description = "Plane Celery worker";
         wantedBy = [ "multi-user.target" ];
+        path = [ pkgs.bash ];
         after = [ "network.target" "plane-migrate.service" ]
           ++ lib.optional cfg.database.local "postgresql.service"
           ++ lib.optional cfg.cache.local "redis-plane.service"
@@ -111,6 +113,7 @@ in
       plane-beat = mkIf cfg.beat.enable {
         description = "Plane Celery beat scheduler";
         wantedBy = [ "multi-user.target" ];
+        path = [ pkgs.bash ];
         after = [ "network.target" "plane-migrate.service" ]
           ++ lib.optional cfg.database.local "postgresql.service"
           ++ lib.optional cfg.cache.local "redis-plane.service"
@@ -142,6 +145,7 @@ in
       plane-web = mkIf cfg.web.enable {
         description = "Plane web interface";
         wantedBy = [ "multi-user.target" ];
+        path = [ pkgs.bash ];
         after = [ "network.target" ] ++ lib.optional cfg.api.enable "plane-api.service";
         wants = lib.optional cfg.api.enable "plane-api.service";
         serviceConfig = {
@@ -162,6 +166,7 @@ in
       plane-admin = mkIf cfg.admin.enable {
         description = "Plane admin interface";
         wantedBy = [ "multi-user.target" ];
+        path = [ pkgs.bash ];
         after = [ "network.target" ] ++ lib.optional cfg.api.enable "plane-api.service";
         wants = lib.optional cfg.api.enable "plane-api.service";
         serviceConfig = {
@@ -182,6 +187,7 @@ in
       plane-space = mkIf cfg.space.enable {
         description = "Plane space interface";
         wantedBy = [ "multi-user.target" ];
+        path = [ pkgs.bash ];
         after = [ "network.target" ] ++ lib.optional cfg.api.enable "plane-api.service";
         wants = lib.optional cfg.api.enable "plane-api.service";
         serviceConfig = {
@@ -202,6 +208,7 @@ in
       plane-live = mkIf cfg.live.enable {
         description = "Plane live collaboration service";
         wantedBy = [ "multi-user.target" ];
+        path = [ pkgs.bash ];
         after = [ "network.target" ] ++ lib.optional cfg.api.enable "plane-api.service";
         wants = lib.optional cfg.api.enable "plane-api.service";
         serviceConfig = {
