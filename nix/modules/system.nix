@@ -128,6 +128,7 @@ in
         EMAIL_PORT=${toString cfg.email.port}
         EMAIL_USE_TLS=${if cfg.email.useTLS then "1" else "0"}
       '';
+    };
 
     # Secret credentials environment file from secret files
     system.activationScripts.plane-credentials = ''
