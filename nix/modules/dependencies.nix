@@ -1,4 +1,5 @@
 { lib
+, pkgs
 , config
 , ...
 }:
@@ -17,6 +18,7 @@ in
         {
           name = cfg.database.user;
           ensureDBOwnership = true;
+          passwordFile = cfg.database.passwordFile;
         }
       ];
     };
