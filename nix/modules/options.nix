@@ -140,7 +140,7 @@ in
 
       host = mkOption {
         type = types.str;
-        default = "100.100.1.2";
+        default = "127.0.0.1";
         description = "The host of the Plane database.";
       };
 

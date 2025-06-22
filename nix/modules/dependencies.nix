@@ -22,6 +22,11 @@ in
       ];
     };
 
+    # Set the postgresql password on every start to ensure it's always in sync.
+    systemd.services.postgresql.serviceConfig.postStart = mkIf cfg.database.local ''
+      ${pkgs.sudo}/bin/sudo -u postgres ${pkgs.postgresql_16}/bin/psql -c "ALTER USER ${cfg.database.user} WITH PASSWORD '$(cat ${cfg.database.passwordFile})'"
+    '';
+
     services.redis.servers = mkIf cfg.cache.local {
       plane = {
         enable = true;
