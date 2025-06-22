@@ -106,28 +106,28 @@ in
         SCOUT_MONITOR=0
         SCOUT_KEY=""
       '' +
-      # Data Storage Configuration
       (if cfg.storage.local then ''
-        USE_MINIO=${if cfg.storage.local then "1" else "0"}
+        # Data Storage Configuration
+        USE_MINIO=1
         MINIO_ROOT_USER=${cfg.storage.accessKey}
         MINIO_ROOT_PASSWORD=${cfg.storage.secretKey}
         BUCKET_NAME=${cfg.storage.bucket}
         FILE_SIZE_LIMIT=5242880
       '' else ''
+        # Data Storage Configuration
+        USE_MINIO=0
         FILE_SIZE_LIMIT=5242880
         AWS_REGION=${cfg.storage.region}
         AWS_ACCESS_KEY_ID=${cfg.storage.accessKey}
         AWS_SECRET_ACCESS_KEY=${cfg.storage.secretKey}
         AWS_S3_ENDPOINT_URL=${cfg.storage.protocol}://${cfg.storage.host}:${toString cfg.storage.port}
         AWS_S3_BUCKET_NAME=${cfg.storage.bucket}
-      '' ) + 
-      # Email settings (defaults - users should override)
-      mkIf cfg.email.enable ''
+      '') +
+      (mkIf cfg.email.enable ''
         EMAIL_HOST=${cfg.email.host}
         EMAIL_PORT=${toString cfg.email.port}
         EMAIL_USE_TLS=${if cfg.email.useTLS then "1" else "0"}
-      '';
-    };
+      '');
 
     # Secret credentials environment file from secret files
     system.activationScripts.plane-credentials = ''
