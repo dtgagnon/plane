@@ -9,11 +9,6 @@ let
 in
 {
   config = mkIf cfg.enable {
-    # Create logs directory with appropriate permissions
-    systemd.tmpfiles.rules = [
-      "d ${cfg.logDir} 0750 ${cfg.user} ${cfg.group} - -"
-    ];
-    
     # Backend systemd services
     systemd.services = {
       # Database migration service (oneshot)
@@ -38,9 +33,8 @@ in
           ];
           EnvironmentFile = [
             "/etc/plane/plane.env"
+            "/etc/plane/credentials.env"
           ];
-          LoadCredential = lib.optional (cfg.secretKeyFile != null) "SECRET_KEY:${cfg.secretKeyFile}"
-            ++ lib.optional (cfg.database.passwordFile != null) "POSTGRES_PASSWORD:${cfg.database.passwordFile}";
           WorkingDirectory = "/tmp";
           ExecStart = "${cfg.package}/bin/plane migrate";
           Restart = "no";
@@ -70,12 +64,9 @@ in
             "PLANE_LOG_DIR=${cfg.logDir}"
           ];
           EnvironmentFile = [
-            "/etc/plane/plane.env"
+            "/etc/plane/plane.env",
+            "/etc/plane/credentials.env"
           ];
-          LoadCredential = lib.optional (cfg.secretKeyFile != null) "SECRET_KEY:${cfg.secretKeyFile}"
-            ++ lib.optional (cfg.database.passwordFile != null) "POSTGRES_PASSWORD:${cfg.database.passwordFile}"
-            ++ lib.optional (cfg.rabbitmq.passwordFile != null) "RABBITMQ_PASSWORD:${cfg.rabbitmq.passwordFile}"
-            ++ lib.optional (cfg.storage.credentialsFile != null) "STORAGE_CREDENTIALS:${cfg.storage.credentialsFile}";
           WorkingDirectory = "/tmp";
           ExecStart = "${cfg.package}/bin/plane api --bind 127.0.0.1:${toString cfg.api.port}";
           Restart = "on-failure";
@@ -106,12 +97,9 @@ in
             "PLANE_LOG_DIR=${cfg.logDir}"
           ];
           EnvironmentFile = [
-            "/etc/plane/plane.env"
+            "/etc/plane/plane.env",
+            "/etc/plane/credentials.env"
           ];
-          LoadCredential = lib.optional (cfg.secretKeyFile != null) "SECRET_KEY:${cfg.secretKeyFile}"
-            ++ lib.optional (cfg.database.passwordFile != null) "POSTGRES_PASSWORD:${cfg.database.passwordFile}"
-            ++ lib.optional (cfg.rabbitmq.passwordFile != null) "RABBITMQ_PASSWORD:${cfg.rabbitmq.passwordFile}"
-            ++ lib.optional (cfg.storage.credentialsFile != null) "STORAGE_CREDENTIALS:${cfg.storage.credentialsFile}";
           WorkingDirectory = "/tmp";
           ExecStart = "${cfg.package}/bin/plane worker";
           Restart = "on-failure";
@@ -141,10 +129,8 @@ in
           ];
           EnvironmentFile = [
             "/etc/plane/plane.env"
+            "/etc/plane/credentials.env"
           ];
-          LoadCredential = lib.optional (cfg.secretKeyFile != null) "SECRET_KEY:${cfg.secretKeyFile}"
-            ++ lib.optional (cfg.database.passwordFile != null) "POSTGRES_PASSWORD:${cfg.database.passwordFile}"
-            ++ lib.optional (cfg.rabbitmq.passwordFile != null) "RABBITMQ_PASSWORD:${cfg.rabbitmq.passwordFile}";
           WorkingDirectory = "/tmp";
           ExecStart = "${cfg.package}/bin/plane beat";
           Restart = "on-failure";

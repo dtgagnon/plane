@@ -181,7 +181,7 @@ in
 
       bucket = mkOption {
         type = types.str;
-        default = "uploads";
+        default = "plane-uploads";
         description = "The bucket to use for the Plane storage.";
       };
 
@@ -240,6 +240,27 @@ in
         type = types.str;
         default = "plane";
         description = "The virtual host for RabbitMQ.";
+      };
+    };
+
+    email = {
+      enable = mkEnableOption "email service" // { default = true; };
+      host = mkOption {
+        type = types.str;
+        default = "localhost";
+        description = "The host of the email service.";
+      };
+
+      port = mkOption {
+        type = types.port;
+        default = 587;
+        description = "The port of the email service.";
+      };
+
+      useTLS = mkOption {
+        type = types.bool;
+        default = true;
+        description = "Whether to use TLS for the email service.";
       };
     };
 

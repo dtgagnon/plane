@@ -39,7 +39,8 @@ in
     services.minio = mkIf cfg.storage.local {
       enable = true;
       listenAddress = "${cfg.storage.host}:${toString cfg.storage.port}";
-      dataDir = [ "${cfg.stateDir}/minio" ]; # Stores data within plane stateDir for organization
+      dataDir = [ "/srv/plane/minio" ]; # Stores data within plane stateDir for organization
+      configDir = "/var/lib/minio/config";
       rootCredentialsFile = cfg.storage.credentialsFile;
     };
   };

@@ -55,9 +55,6 @@ in
       "d ${cfg.stateDir}/static 0750 ${cfg.user} ${cfg.group} -"
       "d ${cfg.logDir} 0750 ${cfg.user} ${cfg.group} -"
       "d /etc/plane 0755 root root -"
-    ] ++ lib.optionals cfg.storage.local [
-      # MinIO data directory within plane stateDir - user creation handled by services.minio
-      "d ${cfg.stateDir}/minio 0755 minio minio -"
     ];
 
     # Environment file generation
@@ -74,32 +71,20 @@ in
 
         # Database Configuration
         PGHOST=${cfg.database.host}
-        PGDATABASE=${cfg.database.name}
-        POSTGRES_USER=${cfg.database.user}
+        PGDATABASE=${lib.optional (! cfg.database.local) cfg.database.name}
         POSTGRES_DB=${cfg.database.name}
         POSTGRES_PORT=${toString cfg.database.port}
+        ${lib.optional (cfg.database.local) "PGDATA=${cfg.stateDir}/postgres"}
 
         # Redis Configuration
         REDIS_HOST=${cfg.cache.host}
         REDIS_PORT=${toString cfg.cache.port}
-        REDIS_URL=redis://${cfg.cache.host}:${toString cfg.cache.port}
 
         # RabbitMQ Configuration
         RABBITMQ_HOST=${cfg.rabbitmq.host}
         RABBITMQ_PORT=${toString cfg.rabbitmq.port}
         RABBITMQ_USER=${cfg.rabbitmq.user}
         RABBITMQ_VHOST=${cfg.rabbitmq.vhost}
-
-        # Storage Configuration
-        USE_MINIO=${if cfg.storage.local then "1" else "0"}
-        FILE_SIZE_LIMIT=5242880
-        AWS_REGION=${cfg.storage.region}
-        AWS_S3_ENDPOINT_URL=${cfg.storage.protocol}://${cfg.storage.host}:${toString cfg.storage.port}
-        AWS_S3_BUCKET_NAME=${cfg.storage.bucket}
-
-        # For local file storage (when USE_MINIO=0)
-        MEDIA_ROOT=${cfg.stateDir}/media
-        STATIC_ROOT=${cfg.stateDir}/static
 
         # API Configuration
         GUNICORN_WORKERS=${toString cfg.api.workers}
@@ -114,24 +99,39 @@ in
         NEXT_PUBLIC_SPACE_BASE_URL=https://${cfg.domain}/spaces
         NEXT_PUBLIC_ADMIN_BASE_URL=https://${cfg.domain}/god-mode
         
-        # Email settings (defaults - users should override)
-        EMAIL_HOST=localhost
-        EMAIL_PORT=587
-        EMAIL_USE_TLS=1
-        
         # Sentry (optional)
         SENTRY_DSN=""
         
         # Scout APM (optional)
         SCOUT_MONITOR=0
         SCOUT_KEY=""
+      '' +
+      # Data Storage Configuration
+      if cfg.storage.local then ''
+        USE_MINIO=${if cfg.storage.local then "1" else "0"}
+        MINIO_ROOT_USER=${cfg.storage.accessKey}
+        MINIO_ROOT_PASSWORD=${cfg.storage.secretKey}
+        BUCKET_NAME=${cfg.storage.bucket}
+        FILE_SIZE_LIMIT=5242880
+      '' else ''
+        FILE_SIZE_LIMIT=5242880
+        AWS_REGION=${cfg.storage.region}
+        AWS_ACCESS_KEY_ID=${cfg.storage.accessKey}
+        AWS_SECRET_ACCESS_KEY=${cfg.storage.secretKey}
+        AWS_S3_ENDPOINT_URL=${cfg.storage.protocol}://${cfg.storage.host}:${toString cfg.storage.port}
+        AWS_S3_BUCKET_NAME=${cfg.storage.bucket}
+      '' + 
+      # Email settings (defaults - users should override)
+      mkIf cfg.email.enable ''
+        EMAIL_HOST=${cfg.email.host}
+        EMAIL_PORT=${toString cfg.email.port}
+        EMAIL_USE_TLS=${if cfg.email.useTLS then "1" else "0"}
       '';
     };
 
     # Secret credentials environment file from secret files
     system.activationScripts.plane-credentials = ''
       # Create credentials environment file from secret files
-      mkdir -p /etc/plane
       touch /etc/plane/credentials.env
       chmod 640 /etc/plane/credentials.env
       chown ${cfg.user}:${cfg.group} /etc/plane/credentials.env
@@ -141,6 +141,7 @@ in
 
       # Database password if configured
       ${lib.optionalString (cfg.database.passwordFile != null) ''
+        echo "POSTGRES_USER=${cfg.database.user}" >> /etc/plane/credentials.env
         echo "POSTGRES_PASSWORD=$(cat ${cfg.database.passwordFile})" >> /etc/plane/credentials.env
         echo "DATABASE_URL=postgresql://${cfg.database.user}:$(cat ${cfg.database.passwordFile})@${cfg.database.host}:${toString cfg.database.port}/${cfg.database.name}" >> /etc/plane/credentials.env
       ''}
@@ -152,7 +153,7 @@ in
       ''}
 
       # S3 credentials if configured
-      ${lib.optionalString (cfg.storage.credentialsFile != null) ''
+      ${lib.optionalString (!cfg.storage.local && cfg.storage.credentialsFile != null) ''
         AWS_ACCESS_KEY_ID=$(head -n 1 ${cfg.storage.credentialsFile})
         AWS_SECRET_ACCESS_KEY=$(tail -n 1 ${cfg.storage.credentialsFile})
         echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> /etc/plane/credentials.env
