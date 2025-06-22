@@ -13,7 +13,7 @@ in
     # These leverage existing NixOS modules for battle-tested configurations
     services.postgresql = mkIf cfg.database.local {
       enable = true;
-      dataDir = ${cfg.dataDir}/postgres;
+      dataDir = "${cfg.dataDir}/postgres";
       settings.port = cfg.database.port;
       ensureDatabases = [ cfg.database.name ];
       ensureUsers = [
