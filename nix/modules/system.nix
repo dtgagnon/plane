@@ -107,7 +107,7 @@ in
         SCOUT_KEY=""
       '' +
       # Data Storage Configuration
-      if cfg.storage.local then ''
+      (if cfg.storage.local then ''
         USE_MINIO=${if cfg.storage.local then "1" else "0"}
         MINIO_ROOT_USER=${cfg.storage.accessKey}
         MINIO_ROOT_PASSWORD=${cfg.storage.secretKey}
@@ -120,7 +120,7 @@ in
         AWS_SECRET_ACCESS_KEY=${cfg.storage.secretKey}
         AWS_S3_ENDPOINT_URL=${cfg.storage.protocol}://${cfg.storage.host}:${toString cfg.storage.port}
         AWS_S3_BUCKET_NAME=${cfg.storage.bucket}
-      '' + 
+      '' ) + 
       # Email settings (defaults - users should override)
       mkIf cfg.email.enable ''
         EMAIL_HOST=${cfg.email.host}
