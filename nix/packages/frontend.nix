@@ -22,10 +22,34 @@ in pkgs.stdenv.mkDerivation {
   # Don't run tests during build
   doCheck = false;
 
-  # Build phase - just check that source is valid
+  # Build phase - install dependencies
   buildPhase = ''
     echo "Preparing ${name} for development deployment..."
-    ls -la . || true
+    
+    # Check if workspaceRoot has package.json and node_modules
+    if [ -f "${workspaceRoot}/package.json" ] && [ -d "${workspaceRoot}/node_modules" ]; then
+      echo "Using workspace dependencies from ${workspaceRoot}"
+      
+      # Copy node_modules from workspaceRoot to prevent runtime downloads
+      mkdir -p node_modules
+      cp -r ${workspaceRoot}/node_modules/* node_modules/
+      
+      # Also copy over workspace packages that might be referenced
+      if [ -d "${workspaceRoot}/packages" ]; then
+        echo "Copying workspace packages"
+        mkdir -p node_modules/@plane
+        for dir in ${workspaceRoot}/packages/*; do
+          if [ -d "$dir" ]; then
+            pkg_name=$(basename "$dir")
+            echo "Copying @plane/$pkg_name"
+            cp -r "$dir" node_modules/@plane/"$pkg_name" || true
+          fi
+        done
+      fi
+    else
+      echo "WARNING: No workspace dependencies found. Services may fail to start."
+      echo "This package requires a fully built Plane monorepo workspace."
+    fi
   '';
 
   installPhase = ''
@@ -34,6 +58,12 @@ in pkgs.stdenv.mkDerivation {
     
     # Copy the source
     cp -r $src/* $out/share/${name}/
+    
+    # Copy node_modules if they exist
+    if [ -d "node_modules" ]; then
+      echo "Copying node_modules to $out/share/${name}/"
+      cp -r node_modules $out/share/${name}/
+    fi
     
     # Create startup script that runs a development server without using EOF heredoc to avoid escape issues
     cat > $out/bin/plane-${binName} << EOF
@@ -76,6 +106,8 @@ if [ ! -d "node_modules" ]; then
     echo "Warning: Failed to install dependencies with --frozen-lockfile, trying without..."
     ${pkgs.yarn}/bin/yarn install
   }
+else
+  echo "Node modules directory found, skipping dependency installation"
 fi
 
 # Start development server
