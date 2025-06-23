@@ -22,9 +22,9 @@ in pkgs.stdenv.mkDerivation {
   # Don't run tests during build
   doCheck = false;
 
-  # Build phase - create stub packages for @plane/* dependencies
+  # Build phase - prepare for standalone Next.js build
   buildPhase = ''
-    echo "Preparing ${name} for development deployment..."
+    echo "Preparing ${name} for production deployment..."
     
     # Create node_modules directory with stub packages for @plane/* dependencies
     mkdir -p node_modules/@plane
@@ -47,22 +47,57 @@ EOF
     
     # Create yarn.lock file to prevent yarn from trying to fetch dependencies
     touch yarn.lock
+    
+    # Modify next.config.js to use standalone output
+    cp $src/next.config.js ./next.config.js.orig
+    cat > next.config.js << EOF
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  output: 'standalone',
+  // Copy original settings
+  reactStrictMode: true,
+  swcMinify: true,
+}
+
+module.exports = nextConfig
+EOF
+    
+    echo "Building Next.js app in standalone mode..."
+    export NODE_ENV=production
+    ${pkgs.nodejs}/bin/npx next build
   '';
 
   installPhase = ''
     # Create directory structure
-    mkdir -p $out/bin $out/share/${name}
+    mkdir -p $out/bin $out/share/${name} $out/share/${name}-standalone
     
-    # Copy the source
-    cp -r $src/* $out/share/${name}/
-    
-    # Copy node_modules if they exist
-    if [ -d "node_modules" ]; then
-      echo "Copying node_modules to $out/share/${name}/"
-      cp -r node_modules $out/share/${name}/
+    # Copy the standalone build output (contains everything needed to run)
+    if [ -d ".next/standalone" ]; then
+      echo "Copying Next.js standalone build to $out/share/${name}-standalone/"
+      cp -r .next/standalone/* $out/share/${name}-standalone/
+      
+      # Copy static assets and public files
+      mkdir -p $out/share/${name}-standalone/public
+      if [ -d ".next/static" ]; then
+        mkdir -p $out/share/${name}-standalone/.next/static
+        cp -r .next/static $out/share/${name}-standalone/.next/
+      fi
+      if [ -d "public" ]; then
+        cp -r public/* $out/share/${name}-standalone/public/
+      fi
+    else
+      echo "WARNING: No standalone build output found. Falling back to source copy."
+      # Copy the source as fallback
+      cp -r $src/* $out/share/${name}/
+      
+      # Copy node_modules if they exist
+      if [ -d "node_modules" ]; then
+        echo "Copying node_modules to $out/share/${name}/"
+        cp -r node_modules $out/share/${name}/
+      fi
     fi
     
-    # Create startup script that runs a development server without using EOF heredoc to avoid escape issues
+    # Create startup script that runs the production server
     cat > $out/bin/plane-${binName} << EOF
 
 #!/usr/bin/env bash
@@ -93,23 +128,34 @@ export PORT
 echo "Starting ${name} development server on port ''$PORT..."
 echo "Source directory: $out/share/${name}/"
 
-# Change to app directory - use the actual path, not $out variable
-cd $out/share/${name}
-
-# Check if dependencies are installed
-if [ ! -d "node_modules" ]; then
-  echo "Installing dependencies..."
-  ${pkgs.yarn}/bin/yarn install --frozen-lockfile || {
-    echo "Warning: Failed to install dependencies with --frozen-lockfile, trying without..."
-    ${pkgs.yarn}/bin/yarn install
-  }
+# Check if standalone build exists and use it
+if [ -d "${builtins.toString "$out"}/share/${name}-standalone" ]; then
+  echo "Starting production server for ${name} on port $PORT..."
+  cd ${builtins.toString "$out"}/share/${name}-standalone/
+  # Set port for Node.js server
+  export PORT=$PORT
+  # Run the standalone server
+  exec ${pkgs.nodejs}/bin/node server.js
 else
-  echo "Node modules directory found, skipping dependency installation"
-fi
+  echo "WARNING: Standalone build not found, falling back to development mode."
+  # Navigate to source directory
+  cd ${builtins.toString "$out"}/share/${name}/
 
-# Start development server
-echo "Starting Next.js development server..."
-exec ${pkgs.yarn}/bin/yarn dev --port "$PORT"
+  # Check if dependencies are installed
+  if [ ! -d "node_modules" ]; then
+    echo "Installing dependencies..."
+    ${pkgs.yarn}/bin/yarn install --frozen-lockfile || {
+      echo "Warning: Failed to install dependencies with --frozen-lockfile, trying without..."
+      ${pkgs.yarn}/bin/yarn install
+    }
+  else
+    echo "Node modules directory found, skipping dependency installation"
+  fi
+
+  # Fall back to dev server
+  echo "Starting Next.js development server on port $PORT..."
+  ${pkgs.nodejs}/bin/npx next dev --port $PORT
+fi
 EOF
     chmod +x $out/bin/plane-${binName}
     
