@@ -48,9 +48,10 @@ EOF
     # Create yarn.lock file to prevent yarn from trying to fetch dependencies
     touch yarn.lock
     
-    # Modify next.config.js to use standalone output
-    cp $src/next.config.js ./next.config.js.orig
-    cat > next.config.js << EOF
+    # Modify next.config.js to use standalone output if it exists
+    if [ -f "$src/next.config.js" ]; then
+      cp $src/next.config.js ./next.config.js.orig
+      cat > next.config.js << EOF
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
@@ -61,6 +62,19 @@ const nextConfig = {
 
 module.exports = nextConfig
 EOF
+    else
+      echo "No next.config.js found, creating one"
+      cat > next.config.js << EOF
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  output: 'standalone',
+  reactStrictMode: true,
+  swcMinify: true,
+}
+
+module.exports = nextConfig
+EOF
+    fi
     
     echo "Building Next.js app in standalone mode..."
     export NODE_ENV=production
