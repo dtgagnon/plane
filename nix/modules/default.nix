@@ -8,6 +8,5 @@
     ./system.nix
     ./services.nix
     ./networking.nix
-    ./dependencies.nix
   ];
 }
