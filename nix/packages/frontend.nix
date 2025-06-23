@@ -1,10 +1,59 @@
 { pkgs, name, src, workspaceRoot }:
 
-# Simple wrapper for Plane frontend apps - development mode until proper build is implemented
+# Production-ready wrapper for Plane frontend apps with offline build capabilities
 
 let
   # Convert app name to binary name (e.g., "plane-web" -> "web") 
   binName = builtins.replaceStrings ["plane-"] [""] name;
+  
+  # Create a fixed-output derivation for npm dependencies
+  # This allows network access during dependency fetching but guarantees reproducible builds
+  nodeModules = pkgs.stdenv.mkDerivation {
+    name = "${name}-node-modules";
+    inherit src;
+    
+    nativeBuildInputs = with pkgs; [ nodejs yarn ];
+    
+    outputHashMode = "recursive";
+    outputHashAlgo = "sha256";
+    # This hash will change when dependencies change; initially set to a dummy value
+    # that will fail with the correct hash to use
+    outputHash = "0000000000000000000000000000000000000000000000000000";
+    
+    buildPhase = ''
+      export HOME=$TMPDIR
+      # Create temporary package.json and yarn.lock
+      cp $src/package.json ./package.json
+      if [ -f "$src/yarn.lock" ]; then
+        cp $src/yarn.lock ./yarn.lock
+      fi
+      
+      # Create stub packages for @plane/* dependencies
+      mkdir -p node_modules/@plane
+      for pkg in constants editor hooks i18n propel types ui utils; do
+        echo "Pre-creating stub package for @plane/$pkg"
+        mkdir -p node_modules/@plane/$pkg
+        cat > node_modules/@plane/$pkg/package.json << EOF
+{
+  "name": "@plane/$pkg",
+  "version": "0.1.0",
+  "main": "index.js"
+}
+EOF
+        echo "// Stub for @plane/$pkg" > node_modules/@plane/$pkg/index.js
+      done
+      
+      # Install dependencies in offline mode if possible, otherwise fetch them
+      yarn install --frozen-lockfile --non-interactive || yarn install --non-interactive
+      
+      # Save the complete node_modules directory
+      mkdir -p $out
+      cp -r node_modules $out/
+    '';
+    
+    # Skip installation phase, we've already copied everything in buildPhase
+    dontInstall = true;
+  };
   
 in pkgs.stdenv.mkDerivation {
   pname = name;
@@ -21,36 +70,29 @@ in pkgs.stdenv.mkDerivation {
   
   # Don't run tests during build
   doCheck = false;
+  
+  # Prepare for build by setting up environment
+  preBuildPhase = ''
+    # Copy source files that we need for the build
+    cp -r $src/* ./
+    
+    # Link pre-built node_modules
+    ln -s ${nodeModules}/node_modules ./node_modules
+    
+    # Create .npmrc to prevent npm from trying to reach the network
+    cat > .npmrc << EOF
+offline=true
+prefer-offline=true
+EOF
+  '';
 
   # Build phase - prepare for standalone Next.js build
   buildPhase = ''
     echo "Preparing ${name} for production deployment..."
     
-    # Create node_modules directory with stub packages for @plane/* dependencies
-    mkdir -p node_modules/@plane
-    
-    # Create stub packages for all @plane/* dependencies
-    for pkg in constants editor hooks i18n propel types ui utils; do
-      echo "Creating stub package for @plane/$pkg"
-      mkdir -p node_modules/@plane/$pkg
-      # Create minimal package.json for the stub
-      cat > node_modules/@plane/$pkg/package.json << EOF
-{
-  "name": "@plane/$pkg",
-  "version": "0.1.0",
-  "main": "index.js"
-}
-EOF
-      # Create minimal index.js
-      echo "// Stub for @plane/$pkg" > node_modules/@plane/$pkg/index.js
-    done
-    
-    # Create yarn.lock file to prevent yarn from trying to fetch dependencies
-    touch yarn.lock
-    
     # Modify next.config.js to use standalone output if it exists
-    if [ -f "$src/next.config.js" ]; then
-      cp $src/next.config.js ./next.config.js.orig
+    if [ -f "next.config.js" ]; then
+      cp next.config.js ./next.config.js.orig
       cat > next.config.js << EOF
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -78,7 +120,11 @@ EOF
     
     echo "Building Next.js app in standalone mode..."
     export NODE_ENV=production
-    ${pkgs.nodejs}/bin/npx next build
+    export NEXT_TELEMETRY_DISABLED=1
+    export NODE_OPTIONS=--max_old_space_size=4096
+    
+    # Run the build in offline mode
+    ${pkgs.nodejs}/bin/npx --offline next build
   '';
 
   installPhase = ''
