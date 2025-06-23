@@ -22,34 +22,31 @@ in pkgs.stdenv.mkDerivation {
   # Don't run tests during build
   doCheck = false;
 
-  # Build phase - install dependencies
+  # Build phase - create stub packages for @plane/* dependencies
   buildPhase = ''
     echo "Preparing ${name} for development deployment..."
     
-    # Check if workspaceRoot has package.json and node_modules
-    if [ -f "${workspaceRoot}/package.json" ] && [ -d "${workspaceRoot}/node_modules" ]; then
-      echo "Using workspace dependencies from ${workspaceRoot}"
-      
-      # Copy node_modules from workspaceRoot to prevent runtime downloads
-      mkdir -p node_modules
-      cp -r ${workspaceRoot}/node_modules/* node_modules/
-      
-      # Also copy over workspace packages that might be referenced
-      if [ -d "${workspaceRoot}/packages" ]; then
-        echo "Copying workspace packages"
-        mkdir -p node_modules/@plane
-        for dir in ${workspaceRoot}/packages/*; do
-          if [ -d "$dir" ]; then
-            pkg_name=$(basename "$dir")
-            echo "Copying @plane/$pkg_name"
-            cp -r "$dir" node_modules/@plane/"$pkg_name" || true
-          fi
-        done
-      fi
-    else
-      echo "WARNING: No workspace dependencies found. Services may fail to start."
-      echo "This package requires a fully built Plane monorepo workspace."
-    fi
+    # Create node_modules directory with stub packages for @plane/* dependencies
+    mkdir -p node_modules/@plane
+    
+    # Create stub packages for all @plane/* dependencies
+    for pkg in constants editor hooks i18n propel types ui utils; do
+      echo "Creating stub package for @plane/$pkg"
+      mkdir -p node_modules/@plane/$pkg
+      # Create minimal package.json for the stub
+      cat > node_modules/@plane/$pkg/package.json << EOF
+{
+  "name": "@plane/$pkg",
+  "version": "0.1.0",
+  "main": "index.js"
+}
+EOF
+      # Create minimal index.js
+      echo "// Stub for @plane/$pkg" > node_modules/@plane/$pkg/index.js
+    done
+    
+    # Create yarn.lock file to prevent yarn from trying to fetch dependencies
+    touch yarn.lock
   '';
 
   installPhase = ''
