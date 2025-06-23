@@ -6,7 +6,7 @@ let
   inherit (lib) mkIf;
   cfg = config.services.plane;
   protocol = if cfg.acme.enable then "https" else "http";
-  storageProtocol = if cfg.storage.secure then "https" else "http";
+  storageProtocol = cfg.storage.protocol;
 in
 {
   config = mkIf cfg.enable {
