@@ -60,10 +60,10 @@ case "${binName}" in
     ;;
 esac
 
-PORT="\${PORT:-\$DEFAULT_PORT}"
+PORT="''${PORT:-$DEFAULT_PORT}"
 export PORT
 
-echo "Starting ${name} development server on port \$PORT..."
+echo "Starting ${name} development server on port ''$PORT..."
 echo "Source directory: $out/share/${name}/"
 
 # Change to app directory - use the actual path, not $out variable
