@@ -239,23 +239,30 @@ in
     };
     # Set the postgresql password on every start to ensure it's always in sync.
     # The password file is read at runtime to avoid storing the secret in the Nix store.
-    systemd.services.postgresql.serviceConfig.postStart = mkIf cfg.database.local ''
-      # Create a temporary, secure SQL script to avoid command-line injection.
-      SQL_SCRIPT=$(${pkgs.coreutils}/bin/mktemp)
+    systemd.services.postgresql = mkIf cfg.database.local {
+      # Add these to the already created postgresql service
+      serviceConfig = {
+        ExecStartPost = [
+          "+${pkgs.writeShellScript "postgresql-set-password" ''
+            # Create a temporary, secure SQL script to avoid command-line injection.
+            SQL_SCRIPT=$(${pkgs.coreutils}/bin/mktemp)
 
-      # Build the SQL command in the script, escaping single quotes in the password.
-      (
-        ${pkgs.coreutils}/bin/echo -n "ALTER USER ${cfg.database.user} WITH PASSWORD '"
-        ${pkgs.coreutils}/bin/cat ${cfg.database.passwordFile} | ${pkgs.gnused}/bin/sed "s/'/''''/g" | ${pkgs.coreutils}/bin/tr -d '\n'
-        ${pkgs.coreutils}/bin/echo -n "';"
-      ) > "$SQL_SCRIPT"
+            # Build the SQL command in the script, escaping single quotes in the password.
+            (
+              ${pkgs.coreutils}/bin/echo -n "ALTER USER ${cfg.database.user} WITH PASSWORD '"
+              ${pkgs.coreutils}/bin/cat ${cfg.database.passwordFile} | ${pkgs.gnused}/bin/sed "s/'/''''/g" | ${pkgs.coreutils}/bin/tr -d '\n'
+              ${pkgs.coreutils}/bin/echo -n "';"
+            ) > "$SQL_SCRIPT"
 
-      # Execute the script as the postgres user.
-      ${pkgs.sudo}/bin/sudo -u postgres ${pkgs.postgresql_16}/bin/psql -f "$SQL_SCRIPT"
+            # Execute the script as the postgres user.
+            ${pkgs.sudo}/bin/sudo -u postgres ${pkgs.postgresql_16}/bin/psql -f "$SQL_SCRIPT"
 
-      # Clean up the temporary script.
-      ${pkgs.coreutils}/bin/rm "$SQL_SCRIPT"
-    '';
+            # Clean up the temporary script.
+            ${pkgs.coreutils}/bin/rm "$SQL_SCRIPT"
+          ''}"  # Note the + to make this execute as root, not the postgres user
+        ];
+      };
+    };
 
     services.redis.servers = mkIf cfg.cache.local {
       plane = {
