@@ -36,6 +36,11 @@ in
             "/etc/plane/credentials.env"
           ];
           WorkingDirectory = "/tmp";
+          # Create log directory with proper ownership before running the migrate command
+          ExecStartPre = [
+            "+${pkgs.coreutils}/bin/mkdir -p ${cfg.logDir}"
+            "+${pkgs.coreutils}/bin/chown -R ${cfg.user}:${cfg.group} ${cfg.logDir}"
+          ];
           ExecStart = "${cfg.package}/bin/plane migrate";
           Restart = "no";
         };
