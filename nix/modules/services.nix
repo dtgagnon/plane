@@ -141,11 +141,15 @@ in
         };
       };
 
-      # Web frontend
+      # Web interface service
       plane-web = mkIf cfg.web.enable {
         description = "Plane web interface";
         wantedBy = [ "multi-user.target" ];
-        path = [ pkgs.bash ];
+        path = [ 
+          pkgs.bash 
+          # Add the frontend packages to PATH
+          cfg.package
+        ];
         after = [ "network.target" ] ++ lib.optional cfg.api.enable "plane-api.service";
         wants = lib.optional cfg.api.enable "plane-api.service";
         serviceConfig = {
@@ -166,7 +170,11 @@ in
       plane-admin = mkIf cfg.admin.enable {
         description = "Plane admin interface";
         wantedBy = [ "multi-user.target" ];
-        path = [ pkgs.bash ];
+        path = [ 
+          pkgs.bash 
+          # Add the frontend packages to PATH
+          cfg.package
+        ];
         after = [ "network.target" ] ++ lib.optional cfg.api.enable "plane-api.service";
         wants = lib.optional cfg.api.enable "plane-api.service";
         serviceConfig = {
@@ -187,7 +195,11 @@ in
       plane-space = mkIf cfg.space.enable {
         description = "Plane space interface";
         wantedBy = [ "multi-user.target" ];
-        path = [ pkgs.bash ];
+        path = [ 
+          pkgs.bash 
+          # Add the frontend packages to PATH
+          cfg.package
+        ];
         after = [ "network.target" ] ++ lib.optional cfg.api.enable "plane-api.service";
         wants = lib.optional cfg.api.enable "plane-api.service";
         serviceConfig = {
@@ -208,7 +220,11 @@ in
       plane-live = mkIf cfg.live.enable {
         description = "Plane live collaboration service";
         wantedBy = [ "multi-user.target" ];
-        path = [ pkgs.bash ];
+        path = [ 
+          pkgs.bash 
+          # Add the frontend packages to PATH
+          cfg.package
+        ];
         after = [ "network.target" ] ++ lib.optional cfg.api.enable "plane-api.service";
         wants = lib.optional cfg.api.enable "plane-api.service";
         serviceConfig = {
