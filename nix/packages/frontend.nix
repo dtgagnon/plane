@@ -35,8 +35,9 @@ in pkgs.stdenv.mkDerivation {
     # Copy the source
     cp -r $src/* $out/share/${name}/
     
-    # Create startup script that runs a development server
-    cat > $out/bin/plane-${binName} << 'EOF'
+    # Create startup script that runs a development server without using EOF heredoc to avoid escape issues
+    cat > $out/bin/plane-${binName} << EOF
+
 #!/usr/bin/env bash
 set -e
 
@@ -59,13 +60,13 @@ case "${binName}" in
     ;;
 esac
 
-PORT="''${PORT:-$DEFAULT_PORT}"
+PORT="\${PORT:-\$DEFAULT_PORT}"
 export PORT
 
-echo "Starting ${name} development server on port $PORT..."
+echo "Starting ${name} development server on port \$PORT..."
 echo "Source directory: $out/share/${name}/"
 
-# Change to app directory
+# Change to app directory - use the actual path, not $out variable
 cd $out/share/${name}
 
 # Check if dependencies are installed
