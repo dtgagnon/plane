@@ -5,6 +5,8 @@
 let
   inherit (lib) mkIf;
   cfg = config.services.plane;
+  protocol = if cfg.acme.enable then "https" else "http";
+  storageProtocol = if cfg.storage.secure then "https" else "http";
 in
 {
   config = mkIf cfg.enable {
@@ -65,9 +67,9 @@ in
       text = ''
         # Plane Configuration
         APP_DOMAIN=${cfg.domain}
-        WEB_URL=http://${cfg.domain}
+        WEB_URL=${protocol}://${cfg.domain}
         DEBUG=0
-        CORS_ALLOWED_ORIGINS=http://${cfg.domain}
+        CORS_ALLOWED_ORIGINS=${protocol}://${cfg.domain}
 
         # Database Configuration
         PGHOST=${cfg.database.host}
@@ -94,10 +96,10 @@ in
         PLANE_LOG_DIR=${cfg.logDir}
 
         # Service URLs
-        NEXT_PUBLIC_API_BASE_URL=http://${cfg.domain}/api
-        NEXT_PUBLIC_WEB_BASE_URL=http://${cfg.domain}
-        NEXT_PUBLIC_SPACE_BASE_URL=http://${cfg.domain}/spaces
-        NEXT_PUBLIC_ADMIN_BASE_URL=http://${cfg.domain}/god-mode
+        NEXT_PUBLIC_API_BASE_URL=${protocol}://${cfg.domain}/api
+        NEXT_PUBLIC_WEB_BASE_URL=${protocol}://${cfg.domain}
+        NEXT_PUBLIC_SPACE_BASE_URL=${protocol}://${cfg.domain}/spaces
+        NEXT_PUBLIC_ADMIN_BASE_URL=${protocol}://${cfg.domain}/god-mode
         
         # Sentry (optional)
         SENTRY_DSN=""
@@ -111,7 +113,7 @@ in
         USE_MINIO=${if cfg.storage.local then "1" else "0"}
         FILE_SIZE_LIMIT=${toString cfg.storage.fileSizeLimit}
         AWS_REGION=${cfg.storage.region}
-        AWS_S3_ENDPOINT_URL=${if cfg.storage.local then "http://minio:9000" else "http://${cfg.storage.host}:${toString cfg.storage.port}"}
+        AWS_S3_ENDPOINT_URL=${storageProtocol}://${cfg.storage.host}:${toString cfg.storage.port}
         AWS_S3_BUCKET_NAME=${cfg.storage.bucket}
       '' +
       lib.optionalString cfg.email.enable ''

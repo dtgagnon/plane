@@ -188,7 +188,14 @@ in
       bucket = mkOption {
         type = types.str;
         default = "plane-uploads";
-        description = "The bucket to use for the Plane storage.";
+        description = "The name of the S3 bucket to use for file storage.";
+      };
+
+      secure = mkOption {
+        type = types.bool;
+        default = !config.services.plane.storage.local;
+        defaultText = "!config.services.plane.storage.local";
+        description = "Whether to use HTTPS for the S3 storage endpoint. Defaults to true for remote storage and false for local MinIO.";
       };
 
       protocol = mkOption {
