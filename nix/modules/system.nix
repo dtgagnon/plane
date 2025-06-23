@@ -65,9 +65,9 @@ in
       text = ''
         # Plane Configuration
         APP_DOMAIN=${cfg.domain}
-        WEB_URL=https://${cfg.domain}
+        WEB_URL=http://${cfg.domain}
         DEBUG=0
-        CORS_ALLOWED_ORIGINS=https://${cfg.domain}
+        CORS_ALLOWED_ORIGINS=http://${cfg.domain}
 
         # Database Configuration
         PGHOST=${cfg.database.host}
@@ -94,10 +94,10 @@ in
         PLANE_LOG_DIR=${cfg.logDir}
 
         # Service URLs
-        NEXT_PUBLIC_API_BASE_URL=https://${cfg.domain}/api
-        NEXT_PUBLIC_WEB_BASE_URL=https://${cfg.domain}
-        NEXT_PUBLIC_SPACE_BASE_URL=https://${cfg.domain}/spaces
-        NEXT_PUBLIC_ADMIN_BASE_URL=https://${cfg.domain}/god-mode
+        NEXT_PUBLIC_API_BASE_URL=http://${cfg.domain}/api
+        NEXT_PUBLIC_WEB_BASE_URL=http://${cfg.domain}
+        NEXT_PUBLIC_SPACE_BASE_URL=http://${cfg.domain}/spaces
+        NEXT_PUBLIC_ADMIN_BASE_URL=http://${cfg.domain}/god-mode
         
         # Sentry (optional)
         SENTRY_DSN=""
@@ -106,19 +106,14 @@ in
         SCOUT_MONITOR=0
         SCOUT_KEY=""
       '' +
-      (if cfg.storage.local then ''
+      ''
         # Data Storage Configuration
-        USE_MINIO=1
-        BUCKET_NAME=${cfg.storage.bucket}
-        FILE_SIZE_LIMIT=${toString cfg.storage.fileSizeLimit}
-      '' else ''
-        # Data Storage Configuration
-        USE_MINIO=0
+        USE_MINIO=${if cfg.storage.local then "1" else "0"}
         FILE_SIZE_LIMIT=${toString cfg.storage.fileSizeLimit}
         AWS_REGION=${cfg.storage.region}
-        AWS_S3_ENDPOINT_URL=${cfg.storage.protocol}://${cfg.storage.host}:${toString cfg.storage.port}
+        AWS_S3_ENDPOINT_URL=${if cfg.storage.local then "http://minio:9000" else "http://${cfg.storage.host}:${toString cfg.storage.port}"}
         AWS_S3_BUCKET_NAME=${cfg.storage.bucket}
-      '') +
+      '' +
       lib.optionalString cfg.email.enable ''
         EMAIL_HOST=${cfg.email.host}
         EMAIL_PORT=${toString cfg.email.port}
@@ -143,15 +138,10 @@ in
         echo "DATABASE_URL=postgresql://${cfg.database.user}:$(cat ${cfg.database.passwordFile})@${cfg.database.host}:${toString cfg.database.port}/${cfg.database.name}" >> /etc/plane/credentials.env
       ''}
       
-      ${lib.optionalString (cfg.storage.local && cfg.storage.credentialsFile != null) ''
-        echo "$(head -n 1 ${cfg.storage.credentialsFile})" >> /etc/plane/credentials.env
-        echo "$(tail -n 1 ${cfg.storage.credentialsFile})" >> /etc/plane/credentials.env
-      ''}
-
-      # S3 credentials if configured
-      ${lib.optionalString (!cfg.storage.local && cfg.storage.credentialsFile != null) ''
-        echo "AWS_ACCESS_KEY_ID=$(head -n 1 ${cfg.storage.credentialsFile})" >> /etc/plane/credentials.env
-        echo "AWS_SECRET_ACCESS_KEY=$(tail -n 1 ${cfg.storage.credentialsFile})" >> /etc/plane/credentials.env
+      # Storage credentials if configured
+      ${lib.optionalString (cfg.storage.credentialsFile != null) ''
+        echo "AWS_ACCESS_KEY_ID=$(grep MINIO_ROOT_USER ${cfg.storage.credentialsFile} | cut -d '=' -f2-)" >> /etc/plane/credentials.env
+        echo "AWS_SECRET_ACCESS_KEY=$(grep MINIO_ROOT_PASSWORD ${cfg.storage.credentialsFile} | cut -d '=' -f2-)" >> /etc/plane/credentials.env
       ''}
 
       # RabbitMQ password if configured

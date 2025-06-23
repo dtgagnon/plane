@@ -271,7 +271,7 @@ in
     };
 
     acme = {
-      enable = mkEnableOption "ACME certificates for Plane domain";
+      enable = mkEnableOption "ACME certificates for Plane domain" // { default = true; };
     };
 
     nginx = {
